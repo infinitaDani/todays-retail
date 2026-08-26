@@ -1,0 +1,1 @@
+<x-layouts.core-admin title="Nuevo usuario · Core Admin"><h1>Nuevo usuario global</h1><div class="card"><form method="POST" action="{{ route('admin.users.store') }}">@csrf @include('core-admin.users._form')</form></div></x-layouts.core-admin>

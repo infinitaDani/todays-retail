@@ -1,0 +1,1 @@
+<x-layouts.core-admin title="Editar usuario · Core Admin"><h1>Editar usuario global</h1><div class="card"><form method="POST" action="{{ route('admin.users.update', $user) }}">@csrf @method('PUT') @include('core-admin.users._form')</form></div></x-layouts.core-admin>

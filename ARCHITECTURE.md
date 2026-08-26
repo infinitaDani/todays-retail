@@ -38,6 +38,15 @@ Core responsibilities:
 - Roles associated with account membership
 - Tenant database identification
 
+Internal Core administration is restricted separately from customer access.
+Until an internal permissions system is introduced, the `core.admin` middleware
+allows only emails listed in `CORE_ADMIN_EMAILS`. This is not an account role
+and does not change the `AccountUser` role model.
+
+An allowlisted internal administrator may access Core Admin without an active
+account membership. All other users must retain the normal account-selection
+flow and cannot access Core Admin.
+
 Core tables:
 
 - accounts

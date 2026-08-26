@@ -1,0 +1,1 @@
+<x-layouts.core-admin title="Editar cuenta · Core Admin"><h1>Editar cuenta</h1><div class="card"><form method="POST" action="{{ route('admin.accounts.update', $account) }}">@csrf @method('PUT') @include('core-admin.accounts._form')</form></div></x-layouts.core-admin>

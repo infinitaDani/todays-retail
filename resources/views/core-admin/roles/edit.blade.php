@@ -1,0 +1,1 @@
+<x-layouts.core-admin title="Editar rol · Core Admin"><h1>Editar rol</h1><div class="card"><form method="POST" action="{{ route('admin.roles.update', $role) }}">@csrf @method('PUT') @include('core-admin.roles._form')</form></div></x-layouts.core-admin>

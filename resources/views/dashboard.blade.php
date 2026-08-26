@@ -14,6 +14,10 @@
     </dl>
 
     <div class="actions">
+        @if (in_array(strtolower(auth()->user()->email), config('core_admin.emails', []), true))
+            <a class="button secondary" href="{{ route('admin.accounts.index') }}">Core Admin</a>
+        @endif
+
         @if ($canSwitchAccounts)
             <a class="button secondary" href="{{ route('accounts.select') }}">Cambiar de cuenta</a>
         @endif

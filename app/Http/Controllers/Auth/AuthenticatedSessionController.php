@@ -48,6 +48,10 @@ class AuthenticatedSessionController extends Controller
             ->get();
 
         if ($accounts->isEmpty()) {
+            if (in_array(strtolower($user->email), config('core_admin.emails', []), true)) {
+                return redirect()->route('admin.accounts.index');
+            }
+
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

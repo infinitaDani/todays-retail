@@ -1,0 +1,1 @@
+<x-layouts.core-admin title="Nuevo rol · Core Admin"><h1>Nuevo rol</h1><div class="card"><form method="POST" action="{{ route('admin.roles.store') }}">@csrf @include('core-admin.roles._form')</form></div></x-layouts.core-admin>
