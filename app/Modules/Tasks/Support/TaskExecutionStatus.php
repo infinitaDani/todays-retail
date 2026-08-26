@@ -1,0 +1,4 @@
+<?php
+namespace App\Modules\Tasks\Support;
+use App\Modules\Tasks\Models\TaskExecution; use Carbon\CarbonInterface;
+enum TaskExecutionStatus: string { case InProgress='in_progress'; case DueSoon='due_soon'; case Overdue='overdue'; case CompletedOnTime='completed_on_time'; case CompletedLate='completed_late'; public static function for(TaskExecution $execution, \DateTimeInterface $now): self { $due=$execution->checklistItem?->due_time; if (!$due) return $execution->completed_at ? self::CompletedOnTime : self::InProgress; $date=$execution->checklistExecution?->execution_date?->format('Y-m-d'); $deadline=\Carbon\Carbon::parse("{$date} {$due}"); if ($execution->completed_at) return $execution->completed_at->lessThanOrEqualTo($deadline)?self::CompletedOnTime:self::CompletedLate; $current=\Carbon\Carbon::instance($now); return $current->greaterThan($deadline)?self::Overdue:($current->greaterThanOrEqualTo($deadline->copy()->subHour())?self::DueSoon:self::InProgress); } }

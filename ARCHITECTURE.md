@@ -363,6 +363,12 @@ Expected tenant entities include:
 
 All Operations data belongs to the active tenant.
 
+The tenant Operations tables are `branches`, `shifts`, and `assignments`.
+An assignment stores one global `core_user_id`, branch, shift, and real date.
+Schedule is a monthly calendar view derived from `assignments.date`; it is not
+a persistent month-only schedule entity. `core_user_id` is validated through
+Core `account_user` before it is stored and has no cross-database foreign key.
+
 ---
 
 ## 12. Tasks Module
@@ -392,6 +398,13 @@ The existing WordPress functionality included:
 - Performance dashboard
 
 The Laravel implementation should preserve the business functionality while improving the underlying architecture.
+
+Tasks and checklists are tenant definitions. `checklist_items` orders tasks and
+stores start and due times. Executions are stored separately in
+`checklist_executions` and `task_executions`, so future reporting can evaluate
+real daily work without changing templates. Task state is calculated from
+completion time and the item due time (`in_progress`, `due_soon`, `overdue`,
+`completed_on_time`, or `completed_late`); it is not an editable status table.
 
 ---
 
@@ -433,6 +446,12 @@ Expected entities include:
 - Versions
 
 The system should be able to determine which users have viewed, read, or confirmed required content.
+
+Knowledge Center uses `knowledge_articles`, `knowledge_assignments`, and
+`knowledge_trackings` in the tenant database. Assignments store a validated
+global `core_user_id` without a cross-database foreign key. Tracking is created
+and updated by article interaction (opened, completed, confirmed), not through
+a manual tracking CRUD.
 
 ---
 
