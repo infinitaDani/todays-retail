@@ -23,7 +23,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/accounts/select', [AccountSelectionController::class, 'store'])->name('accounts.select.store');
 
     Route::get('/dashboard', DashboardController::class)
-        ->middleware('active.account')
+        ->middleware(['active.account', 'tenant'])
         ->name('dashboard');
 
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');

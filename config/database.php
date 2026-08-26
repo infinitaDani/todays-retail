@@ -52,6 +52,25 @@ return [
             ]) : [],
         ],
 
+        'tenant' => [
+            'driver' => 'mariadb',
+            'host' => env('TENANT_DB_HOST', 'localhost'),
+            'port' => env('TENANT_DB_PORT', '3306'),
+            'database' => null,
+            'username' => env('TENANT_DB_USERNAME'),
+            'password' => env('TENANT_DB_PASSWORD'),
+            'unix_socket' => env('TENANT_DB_SOCKET', ''),
+            'charset' => env('TENANT_DB_CHARSET', 'utf8mb4'),
+            'collation' => env('TENANT_DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('TENANT_MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),

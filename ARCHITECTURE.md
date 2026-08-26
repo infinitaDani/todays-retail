@@ -238,6 +238,21 @@ Tenant data must never be mixed between accounts.
 
 Once a tenant is resolved, application queries for tenant-specific functionality must use the active tenant database connection.
 
+### Tenant connection
+
+Laravel uses a dynamic connection named `tenant`. Its shared host, port,
+username, and password come only from `TENANT_DB_*` environment variables.
+No tenant credential is stored in Core or tenant tables.
+
+The database name is never fixed in `.env`: it is read from
+`accounts.database_name` for the validated active account. Before every tenant
+connection is configured, the application validates the authenticated user's
+membership through `account_user` and confirms that the account is active.
+
+When the active account changes, the previous `tenant` connection is purged
+before Laravel reconnects with the new `database_name`. This prevents reuse of
+the prior tenant PDO connection.
+
 ---
 
 ## 9. Tenancy Layer
@@ -258,6 +273,37 @@ Responsibilities include:
 - Switching tenant context safely
 
 Business modules must not implement their own tenant resolution logic.
+
+Current infrastructure:
+
+- `TenantResolver` validates `active_account_id`, authenticated user,
+  `account_user` membership, and active account status.
+- `TenantConnectionManager` writes the account database name into the dynamic
+  `tenant` connection, purges the old connection, and reconnects it.
+- `InitializeTenant` middleware initializes the validated context for
+  tenant-aware web routes. Core Admin does not use this middleware.
+
+Tenant models must explicitly declare `protected $connection = 'tenant';`.
+Core models must continue to declare `protected $connection = 'core';`.
+Do not create Eloquent relations that require joins between Core and tenant
+tables.
+
+### Migrations
+
+- `database/migrations/` contains only Core migrations.
+- `database/migrations/tenant/` contains migrations that run separately inside
+  each tenant database.
+
+Tenant migrations are never run for every account automatically. To migrate one
+active tenant explicitly, run:
+
+```bash
+php artisan tenant:migrate ACCOUNT_ID --force
+```
+
+The command loads the selected active Core account, configures `tenant` from
+its `database_name`, and runs only `database/migrations/tenant/`. It does not
+run Core migrations, create databases, or provision MySQL users.
 
 ---
 

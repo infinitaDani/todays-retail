@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\EnsureActiveAccount;
 use App\Http\Middleware\EnsureCoreAdministrator;
+use App\Http\Middleware\InitializeTenant;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,10 +13,14 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withCommands([
+        app_path('Console/Commands'),
+    ])
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'active.account' => EnsureActiveAccount::class,
             'core.admin' => EnsureCoreAdministrator::class,
+            'tenant' => InitializeTenant::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
