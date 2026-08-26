@@ -18,7 +18,14 @@ class TenantTeamController extends Controller
     public function index(Request $request, TenantOperationalScope $scopes): View
     {
         $account = $request->attributes->get('tenantAccount');
-        $memberships = $account->memberships()->with(['user', 'role'])->orderBy('id')->get();
+        $query = $account->memberships()->with(['user', 'role'])
+            ->when($request->filled('search'), fn ($query) => $query->whereHas('user', fn ($users) => $users->where('name', 'like', '%'.$request->string('search').'%')->orWhere('email', 'like', '%'.$request->string('search').'%')))
+            ->when($request->filled('role'), fn ($query) => $query->whereHas('role', fn ($roles) => $roles->where('code', $request->string('role')))
+            ->when($request->filled('status'), fn ($query) => $query->whereHas('user', fn ($users) => $users->where('status', $request->string('status')));
+        if ($request->filled('branch_id')) {
+            $query->whereIn('user_id', StaffProfile::query()->where('branch_id', $request->integer('branch_id'))->pluck('core_user_id'));
+        }
+        $memberships = $query->orderBy('id')->paginate(10)->withQueryString();
         $profiles = StaffProfile::query()->whereIn('core_user_id', $memberships->pluck('user_id'))->get()->keyBy('core_user_id');
 
         return view('tenant.team.index', [
@@ -26,6 +33,13 @@ class TenantTeamController extends Controller
             'profiles' => $profiles,
             'roles' => Role::query()->whereIn('code', $scopes->allowedRoleCodes())->orderBy('name')->get(),
             'branches' => Branch::query()->where('status', 'active')->orderBy('name')->get(),
+            'summary' => [
+                'total' => $account->memberships()->count(),
+                'active' => $account->users()->where('users.status', 'active')->count(),
+                'management' => $account->memberships()->whereHas('role', fn ($roles) => $roles->where('code', 'management'))->count(),
+                'store_admin' => $account->memberships()->whereHas('role', fn ($roles) => $roles->where('code', 'store_admin'))->count(),
+                'advisor' => $account->memberships()->whereHas('role', fn ($roles) => $roles->where('code', 'advisor'))->count(),
+            ],
         ]);
     }
 

@@ -18,9 +18,9 @@ use Illuminate\View\View;
 
 class OperationsController extends Controller
 {
-    public function branches(): View { return view('tenant.operations.branches', ['branches' => Branch::orderBy('name')->get()]); }
+    public function branches(Request $request): View { $query = Branch::query()->withCount(['assignments', 'staffProfiles'])->when($request->filled('search'), fn (Builder $q) => $q->where(fn (Builder $nested) => $nested->where('name', 'like', '%'.$request->string('search').'%')->orWhere('code', 'like', '%'.$request->string('search').'%')))->when($request->filled('status'), fn (Builder $q) => $q->where('status', $request->string('status'))); return view('tenant.operations.branches', ['branches' => $query->orderBy('name')->paginate(10)->withQueryString(), 'summary' => ['total' => Branch::count(), 'active' => Branch::where('status', 'active')->count(), 'inactive' => Branch::where('status', 'inactive')->count(), 'assigned_staff' => StaffProfile::whereNotNull('branch_id')->count()]]); }
     public function storeBranch(Request $request): RedirectResponse { Branch::create($request->validate(['name' => 'required|max:150', 'code' => 'nullable|max:50', 'status' => 'required|in:active,inactive'])); return back(); }
-    public function shifts(): View { return view('tenant.operations.shifts', ['shifts' => Shift::orderBy('name')->get()]); }
+    public function shifts(Request $request): View { $query = Shift::query()->withCount(['assignments', 'checklists'])->when($request->filled('search'), fn (Builder $q) => $q->where('name', 'like', '%'.$request->string('search').'%'))->when($request->filled('status'), fn (Builder $q) => $q->where('status', $request->string('status'))); return view('tenant.operations.shifts', ['shifts' => $query->orderBy('name')->paginate(10)->withQueryString(), 'summary' => ['total' => Shift::count(), 'active' => Shift::where('status', 'active')->count(), 'inactive' => Shift::where('status', 'inactive')->count(), 'assigned' => Assignment::count()]]); }
     public function storeShift(Request $request): RedirectResponse { Shift::create($request->validate(['name' => 'required|max:100', 'start_time' => 'required', 'end_time' => 'required', 'status' => 'required|in:active,inactive'])); return back(); }
 
     public function schedule(Request $request): View
