@@ -1,42 +1,10 @@
+@props(['title' => "Core Admin · Today's Retail"])
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{{ $title ?? 'Core Admin · Today\'s Retail' }}</title>
-        <style>
-            :root { color: #182230; background: #f5f7fa; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
-            body { margin: 0; } main { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; }
-            header { background: #101828; color: #fff; } header > div { max-width: 1100px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; gap: 24px; }
-            nav { display: flex; gap: 16px; } nav a { color: #d0d5dd; text-decoration: none; } nav a:hover { color: #fff; }
-            h1 { margin: 0 0 8px; } h2 { margin-top: 32px; } p { color: #475467; } .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 20px 0; }
-            .card { background: #fff; border: 1px solid #e4e7ec; border-radius: 12px; padding: 24px; margin-top: 20px; }
-            table { border-collapse: collapse; width: 100%; } th, td { border-bottom: 1px solid #eaecf0; padding: 12px 8px; text-align: left; vertical-align: top; } th { color: #475467; font-size: .85rem; }
-            label { display: block; font-weight: 600; margin: 16px 0 6px; } input, select { box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid #d0d5dd; border-radius: 7px; font: inherit; }
-            button, .button { display: inline-block; background: #155eef; border: 0; border-radius: 7px; color: #fff; cursor: pointer; font: inherit; font-weight: 600; padding: 9px 13px; text-decoration: none; }
-            .button.secondary, button.secondary { background: #fff; border: 1px solid #d0d5dd; color: #344054; } .button.danger, button.danger { background: #b42318; }
-            .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; } .inline { display: inline; } .error { color: #b42318; font-size: .9rem; margin-top: 4px; }
-            .notice { background: #ecfdf3; border: 1px solid #abefc6; border-radius: 8px; color: #067647; margin: 16px 0; padding: 12px; }
-            .muted { color: #667085; font-size: .9rem; } .status { font-weight: 600; text-transform: capitalize; }
-        </style>
-    </head>
-    <body>
-        <header>
-            <div>
-                <strong>Today's Retail · Core Admin</strong>
-                <nav>
-                    <a href="{{ route('admin.accounts.index') }}">Cuentas</a>
-                    <a href="{{ route('admin.users.index') }}">Usuarios</a>
-                    <a href="{{ route('admin.roles.index') }}">Roles</a>
-                    <a href="{{ route('dashboard') }}">Volver al dashboard</a>
-                </nav>
-            </div>
-        </header>
-        <main>
-            @if (session('success'))
-                <div class="notice">{{ session('success') }}</div>
-            @endif
-            {{ $slot }}
-        </main>
-    </body>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-bs-theme="light">
+    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{ $title }}</title>@vite(['resources/scss/todays-retail.scss', 'resources/js/todays-retail.js'])</head>
+    <body><div class="app-shell">
+        <header class="app-topbar"><a class="brand-link" href="{{ route('admin.accounts.index') }}"><span class="brand-mark">TR</span><span>Today's Retail</span></a><button class="topbar-button" type="button" data-sidenav-toggle aria-label="Mostrar u ocultar menú"><i data-lucide="menu"></i></button><div class="topbar-account"><span>Administración interna</span><strong>Core Admin</strong></div><div class="topbar-actions"><a class="topbar-button" href="{{ route('dashboard') }}" aria-label="Volver al dashboard"><i data-lucide="arrow-left"></i></a><button class="topbar-button" type="button" data-theme-toggle aria-label="Cambiar tema"><i data-lucide="moon"></i></button></div></header>
+        <aside class="app-sidebar"><div class="sidebar-scroll" data-simplebar><p class="sidebar-heading">Core Admin</p><ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('admin.accounts.*') ? 'active' : '' }}" href="{{ route('admin.accounts.index') }}"><i data-lucide="building-2"></i><span>Cuentas</span></a></li><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}"><i data-lucide="users-round"></i><span>Usuarios</span></a></li><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}" href="{{ route('admin.roles.index') }}"><i data-lucide="shield-check"></i><span>Roles</span></a></li></ul></div></aside>
+        <main class="content-page"><div class="content-container"><div class="page-title-box"><div><h1>{{ $title }}</h1><p>Administración interna de Today's Retail</p></div></div>@if (session('success'))<div class="tr-notice">{{ session('success') }}</div>@endif{{ $slot }}</div><footer class="app-footer">© {{ now()->year }} Today's Retail · Core Admin</footer></main>
+    </div></body>
 </html>
