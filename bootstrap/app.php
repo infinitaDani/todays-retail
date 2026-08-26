@@ -5,6 +5,8 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\EnsureActiveAccount;
 use App\Http\Middleware\EnsureCoreAdministrator;
+use App\Http\Middleware\EnsureScheduleAdministrator;
+use App\Http\Middleware\EnsureTenantManagement;
 use App\Http\Middleware\InitializeTenant;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -20,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'active.account' => EnsureActiveAccount::class,
             'core.admin' => EnsureCoreAdministrator::class,
+            'schedule.admin' => EnsureScheduleAdministrator::class,
+            'tenant.management' => EnsureTenantManagement::class,
             'tenant' => InitializeTenant::class,
         ]);
     })

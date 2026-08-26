@@ -9,6 +9,7 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/scss/todays-retail.scss',
                 'resources/js/todays-retail.js',
+                'resources/js/pages/operations-schedule.js',
             ],
             refresh: true,
         }),

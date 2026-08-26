@@ -13,10 +13,13 @@ class CoreDatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $role = Role::firstOrCreate(
+        Role::firstOrCreate(
             ['code' => 'admin'],
             ['name' => 'Administrator']
         );
+        $managementRole = Role::firstOrCreate(['code' => 'management'], ['name' => 'Management']);
+        Role::firstOrCreate(['code' => 'store_admin'], ['name' => 'Administrador de Tienda']);
+        Role::firstOrCreate(['code' => 'advisor'], ['name' => 'Asesora']);
 
         $account = Account::firstOrCreate(
             ['ruc' => '0000000000001'],
@@ -36,14 +39,16 @@ class CoreDatabaseSeeder extends Seeder
             ]
         );
 
-        AccountUser::firstOrCreate(
+        $membership = AccountUser::firstOrCreate(
             [
                 'account_id' => $account->id,
                 'user_id' => $user->id,
             ],
             [
-                'role_id' => $role->id,
+                'role_id' => $managementRole->id,
             ]
         );
+
+        $membership->update(['role_id' => $managementRole->id]);
     }
 }

@@ -10,6 +10,7 @@ use App\Http\Controllers\CoreAdmin\UserController as CoreAdminUserController;
 use App\Http\Controllers\KnowledgeController;
 use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\TasksController;
+use App\Http\Controllers\TenantTeamController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -51,9 +52,32 @@ Route::prefix('core-admin')->as('admin.')->middleware(['auth', 'core.admin'])->g
 });
 
 Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
-    Route::get('operations/branches',[OperationsController::class,'branches'])->name('operations.branches'); Route::post('operations/branches',[OperationsController::class,'storeBranch'])->name('operations.branches.store');
-    Route::get('operations/shifts',[OperationsController::class,'shifts'])->name('operations.shifts'); Route::post('operations/shifts',[OperationsController::class,'storeShift'])->name('operations.shifts.store');
-    Route::get('operations/schedule',[OperationsController::class,'schedule'])->name('operations.schedule'); Route::post('operations/assignments',[OperationsController::class,'storeAssignment'])->name('operations.assignments.store'); Route::delete('operations/assignments/{assignment}',[OperationsController::class,'destroyAssignment'])->name('operations.assignments.destroy');
-    Route::get('tasks/tasks',[TasksController::class,'tasks'])->name('tasks.index'); Route::post('tasks/tasks',[TasksController::class,'storeTask'])->name('tasks.store'); Route::get('tasks/checklists',[TasksController::class,'checklists'])->name('checklists.index'); Route::post('tasks/checklists',[TasksController::class,'storeChecklist'])->name('checklists.store'); Route::post('tasks/checklists/{checklist}/items',[TasksController::class,'storeItem'])->name('checklists.items.store');
-    Route::get('knowledge/articles',[KnowledgeController::class,'articles'])->name('knowledge.articles'); Route::post('knowledge/articles',[KnowledgeController::class,'storeArticle'])->name('knowledge.articles.store'); Route::post('knowledge/articles/{article}/assignments',[KnowledgeController::class,'assign'])->name('knowledge.assignments.store'); Route::post('knowledge/assignments/{assignment}/open',[KnowledgeController::class,'open'])->name('knowledge.assignments.open'); Route::post('knowledge/assignments/{assignment}/complete',[KnowledgeController::class,'complete'])->name('knowledge.assignments.complete'); Route::post('knowledge/assignments/{assignment}/confirm',[KnowledgeController::class,'confirm'])->name('knowledge.assignments.confirm');
+    Route::middleware('tenant.management')->group(function () {
+        Route::get('operations/branches', [OperationsController::class, 'branches'])->name('operations.branches');
+        Route::post('operations/branches', [OperationsController::class, 'storeBranch'])->name('operations.branches.store');
+        Route::get('operations/shifts', [OperationsController::class, 'shifts'])->name('operations.shifts');
+        Route::post('operations/shifts', [OperationsController::class, 'storeShift'])->name('operations.shifts.store');
+        Route::get('tasks/tasks', [TasksController::class, 'tasks'])->name('tasks.index');
+        Route::post('tasks/tasks', [TasksController::class, 'storeTask'])->name('tasks.store');
+        Route::get('tasks/checklists', [TasksController::class, 'checklists'])->name('checklists.index');
+        Route::post('tasks/checklists', [TasksController::class, 'storeChecklist'])->name('checklists.store');
+        Route::post('tasks/checklists/{checklist}/items', [TasksController::class, 'storeItem'])->name('checklists.items.store');
+        Route::get('knowledge/articles', [KnowledgeController::class, 'articles'])->name('knowledge.articles');
+        Route::post('knowledge/articles', [KnowledgeController::class, 'storeArticle'])->name('knowledge.articles.store');
+        Route::post('knowledge/articles/{article}/assignments', [KnowledgeController::class, 'assign'])->name('knowledge.assignments.store');
+        Route::post('knowledge/assignments/{assignment}/open', [KnowledgeController::class, 'open'])->name('knowledge.assignments.open');
+        Route::post('knowledge/assignments/{assignment}/complete', [KnowledgeController::class, 'complete'])->name('knowledge.assignments.complete');
+        Route::post('knowledge/assignments/{assignment}/confirm', [KnowledgeController::class, 'confirm'])->name('knowledge.assignments.confirm');
+    });
+    Route::middleware('schedule.admin')->group(function () {
+        Route::get('operations/schedule', [OperationsController::class, 'schedule'])->name('operations.schedule');
+        Route::get('operations/schedule/events', [OperationsController::class, 'scheduleEvents'])->name('operations.schedule.events');
+        Route::post('operations/assignments', [OperationsController::class, 'storeAssignment'])->name('operations.assignments.store');
+        Route::patch('operations/assignments/{assignment}', [OperationsController::class, 'updateAssignment'])->name('operations.assignments.update');
+        Route::delete('operations/assignments/{assignment}', [OperationsController::class, 'destroyAssignment'])->name('operations.assignments.destroy');
+    });
+    Route::middleware('tenant.management')->group(function () {
+        Route::get('team', [TenantTeamController::class, 'index'])->name('team.index');
+        Route::patch('team/{membership}', [TenantTeamController::class, 'update'])->name('team.update');
+    });
 });

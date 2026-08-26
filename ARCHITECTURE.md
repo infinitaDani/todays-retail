@@ -369,6 +369,28 @@ Schedule is a monthly calendar view derived from `assignments.date`; it is not
 a persistent month-only schedule entity. `core_user_id` is validated through
 Core `account_user` before it is stored and has no cross-database foreign key.
 
+### Operational staff profiles and branch scope
+
+Each tenant database has a `staff_profiles` table. It contains one profile per
+global Core user in that tenant (`core_user_id` is unique) and an optional
+`branch_id`. The Core user and the Account membership are always validated in
+Core first; the tenant table does not create a cross-database foreign key.
+
+The only operational role codes assignable from the tenant Team interface are:
+
+- `management`: `staff_profiles.branch_id` may be null and the user has scope
+  over all branches of the active account.
+- `store_admin`: `staff_profiles.branch_id` is required and server-side scope
+  is limited to that branch.
+- `advisor`: `staff_profiles.branch_id` is required. Advisors do not access
+  tenant administrative interfaces.
+
+Roles remain Core records and continue to belong to `account_user`. Tenant Team
+may update only the active account membership, only to one of these three
+codes; it cannot create, edit, delete, or assign any other Core role. A future
+need for specific multi-branch access will be handled through a new tenant
+migration, not by changing these rules silently.
+
 ---
 
 ## 12. Tasks Module

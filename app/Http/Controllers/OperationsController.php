@@ -1,4 +1,65 @@
 <?php
+
 namespace App\Http\Controllers;
-use App\Modules\Operations\Models\{Assignment,Branch,Shift}; use App\Tenancy\AuthorizedCoreUser; use Illuminate\Http\Request;
-class OperationsController extends Controller { public function branches(){return view('tenant.operations.branches',['branches'=>Branch::orderBy('name')->get()]);} public function storeBranch(Request $r){Branch::create($r->validate(['name'=>'required|max:150','code'=>'nullable|max:50','status'=>'required|in:active,inactive']));return back();} public function shifts(){return view('tenant.operations.shifts',['shifts'=>Shift::orderBy('name')->get()]);} public function storeShift(Request $r){Shift::create($r->validate(['name'=>'required|max:100','start_time'=>'required','end_time'=>'required','status'=>'required|in:active,inactive']));return back();} public function schedule(Request $r){$month=$r->input('month',now()->format('Y-m')); return view('tenant.operations.schedule',['month'=>$month,'assignments'=>Assignment::with(['branch','shift'])->whereBetween('date',["$month-01",now()->createFromFormat('Y-m',$month)->endOfMonth()->toDateString()])->get(),'branches'=>Branch::where('status','active')->get(),'shifts'=>Shift::where('status','active')->get(),'users'=>$r->attributes->get('tenantAccount')->users()->where('users.status','active')->get()]);} public function storeAssignment(Request $r, AuthorizedCoreUser $users){$d=$r->validate(['core_user_id'=>'required|integer','branch_id'=>'required|exists:tenant.branches,id','shift_id'=>'required|exists:tenant.shifts,id','date'=>'required|date']);$users->ensure($r->attributes->get('tenantAccount'),$d['core_user_id']);Assignment::create($d);return back();} public function destroyAssignment(Assignment $assignment){$assignment->delete();return back();} }
+
+use App\Core\Accounts\Account;
+use App\Modules\Operations\Models\Assignment;
+use App\Modules\Operations\Models\Branch;
+use App\Modules\Operations\Models\Shift;
+use App\Modules\Operations\Models\StaffProfile;
+use App\Tenancy\AuthorizedCoreUser;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\View\View;
+
+class OperationsController extends Controller
+{
+    public function branches(): View { return view('tenant.operations.branches', ['branches' => Branch::orderBy('name')->get()]); }
+    public function storeBranch(Request $request): RedirectResponse { Branch::create($request->validate(['name' => 'required|max:150', 'code' => 'nullable|max:50', 'status' => 'required|in:active,inactive'])); return back(); }
+    public function shifts(): View { return view('tenant.operations.shifts', ['shifts' => Shift::orderBy('name')->get()]); }
+    public function storeShift(Request $request): RedirectResponse { Shift::create($request->validate(['name' => 'required|max:100', 'start_time' => 'required', 'end_time' => 'required', 'status' => 'required|in:active,inactive'])); return back(); }
+
+    public function schedule(Request $request): View
+    {
+        $scope = $request->attributes->get('tenantOperationalScope');
+        return view('tenant.operations.schedule', ['branches' => $this->availableBranches($scope)->get(), 'shifts' => Shift::query()->where('status', 'active')->orderBy('name')->get(), 'users' => $this->availableUsers($request->attributes->get('tenantAccount'), $scope), 'scope' => $scope]);
+    }
+
+    public function scheduleEvents(Request $request): JsonResponse
+    {
+        $data = $request->validate(['start' => ['required', 'date'], 'end' => ['required', 'date', 'after:start'], 'branch_id' => ['nullable', 'integer'], 'core_user_id' => ['nullable', 'integer'], 'shift_id' => ['nullable', 'integer']]);
+        $start = Carbon::parse($data['start'])->startOfDay(); $end = Carbon::parse($data['end'])->startOfDay();
+        if ($start->diffInDays($end) > 93) abort(422, 'El rango del calendario es demasiado amplio.');
+        $scope = $request->attributes->get('tenantOperationalScope'); $account = $request->attributes->get('tenantAccount'); $branchId = $this->filteredBranchId($data['branch_id'] ?? null, $scope);
+        if (! empty($data['core_user_id'])) $this->ensureTargetUser($account, (int) $data['core_user_id'], $branchId, $scope);
+        if (! empty($data['shift_id']) && ! Shift::query()->whereKey($data['shift_id'])->exists()) abort(422, 'El turno seleccionado no existe.');
+        $assignments = Assignment::query()->with(['branch', 'shift'])->where('date', '>=', $start->toDateString())->where('date', '<', $end->toDateString())->when($branchId, fn (Builder $query) => $query->where('branch_id', $branchId))->when($data['core_user_id'] ?? null, fn (Builder $query, $userId) => $query->where('core_user_id', $userId))->when($data['shift_id'] ?? null, fn (Builder $query, $shiftId) => $query->where('shift_id', $shiftId))->get();
+        $users = $account->users()->whereIn('users.id', $assignments->pluck('core_user_id')->unique())->get()->keyBy('id');
+        return response()->json($assignments->map(function (Assignment $assignment) use ($users): array { $user = $users->get($assignment->core_user_id); return ['id' => (string) $assignment->id, 'title' => trim(($user?->name ?? 'Colaborador').' · '.$assignment->shift->name), 'start' => $assignment->date->toDateString(), 'allDay' => true, 'classNames' => ['tr-schedule-event'], 'extendedProps' => ['core_user_id' => $assignment->core_user_id, 'user_name' => $user?->name ?? 'Colaborador', 'branch_id' => $assignment->branch_id, 'branch_name' => $assignment->branch->name, 'shift_id' => $assignment->shift_id, 'shift_name' => $assignment->shift->name]]; }));
+    }
+
+    public function storeAssignment(Request $request, AuthorizedCoreUser $authorizedUsers): JsonResponse
+    {
+        $data = $request->validate(['core_user_id' => ['required', 'integer'], 'branch_id' => ['nullable', 'integer'], 'shift_id' => ['required', 'integer'], 'date' => ['required', 'date']]); $scope = $request->attributes->get('tenantOperationalScope'); $account = $request->attributes->get('tenantAccount'); $branchId = $this->filteredBranchId($data['branch_id'] ?? null, $scope, true);
+        $authorizedUsers->ensure($account, (int) $data['core_user_id']); $this->ensureTargetUser($account, (int) $data['core_user_id'], $branchId, $scope); $this->ensureActiveShift((int) $data['shift_id']);
+        $assignment = Assignment::create(['core_user_id' => $data['core_user_id'], 'branch_id' => $branchId, 'shift_id' => $data['shift_id'], 'date' => $data['date']]); return response()->json(['id' => $assignment->id], 201);
+    }
+
+    public function updateAssignment(Request $request, Assignment $assignment): JsonResponse
+    {
+        $data = $request->validate(['branch_id' => ['nullable', 'integer'], 'shift_id' => ['required', 'integer'], 'date' => ['required', 'date']]); $scope = $request->attributes->get('tenantOperationalScope'); $account = $request->attributes->get('tenantAccount'); $this->ensureAssignmentIsInScope($assignment, $scope); $branchId = $this->filteredBranchId($data['branch_id'] ?? null, $scope, true);
+        $this->ensureTargetUser($account, $assignment->core_user_id, $branchId, $scope); $this->ensureActiveShift((int) $data['shift_id']); $assignment->update(['branch_id' => $branchId, 'shift_id' => $data['shift_id'], 'date' => $data['date']]); return response()->json(['id' => $assignment->id]);
+    }
+
+    public function destroyAssignment(Request $request, Assignment $assignment): JsonResponse { $this->ensureAssignmentIsInScope($assignment, $request->attributes->get('tenantOperationalScope')); $assignment->delete(); return response()->json(status: 204); }
+    private function availableBranches(array $scope): Builder { return Branch::query()->where('status', 'active')->when($scope['branch_id'], fn (Builder $query, int $branchId) => $query->whereKey($branchId))->orderBy('name'); }
+    private function availableUsers(Account $account, array $scope) { $users = $account->users()->where('users.status', 'active')->orderBy('users.name')->get(); if (! $scope['branch_id']) return $users; return $users->whereIn('id', StaffProfile::query()->where('branch_id', $scope['branch_id'])->pluck('core_user_id')); }
+    private function filteredBranchId(?int $requestedBranchId, array $scope, bool $required = false): ?int { if ($scope['branch_id']) return $scope['branch_id']; if ($required && ! $requestedBranchId) abort(422, 'Selecciona una sucursal.'); if ($requestedBranchId && ! Branch::query()->whereKey($requestedBranchId)->where('status', 'active')->exists()) abort(422, 'La sucursal seleccionada no está disponible.'); return $requestedBranchId; }
+    private function ensureTargetUser(Account $account, int $userId, ?int $branchId, array $scope): void { $membership = $account->memberships()->with(['role', 'user'])->where('user_id', $userId)->first(); if (! $membership || $membership->user?->status !== 'active') throw new AuthorizationException('El colaborador no pertenece a la cuenta activa.'); if ($scope['branch_id'] && $branchId !== $scope['branch_id']) throw new AuthorizationException('No puedes usar otra sucursal.'); if ($branchId !== null && in_array($membership->role?->code, ['store_admin', 'advisor'], true)) { $profile = StaffProfile::query()->where('core_user_id', $userId)->first(); if (! $profile?->branch_id || $profile->branch_id !== $branchId) throw new AuthorizationException('El colaborador debe asignarse únicamente a su sucursal operativa.'); } }
+    private function ensureActiveShift(int $shiftId): void { if (! Shift::query()->whereKey($shiftId)->where('status', 'active')->exists()) abort(422, 'El turno seleccionado no está disponible.'); }
+    private function ensureAssignmentIsInScope(Assignment $assignment, array $scope): void { if ($scope['branch_id'] && $assignment->branch_id !== $scope['branch_id']) throw new AuthorizationException('No puedes administrar asignaciones de otra sucursal.'); }
+}

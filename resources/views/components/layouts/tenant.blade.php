@@ -1,10 +1,12 @@
 @props(['title' => null, 'subtitle' => null])
 @php($activeAccount = request()->attributes->get('tenantAccount') ?? ($account ?? null))
+@php($tenantRole = $activeAccount && auth()->check() ? auth()->user()->memberships()->where('account_id', $activeAccount->id)->with('role')->first()?->role?->code : null)
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-bs-theme="light">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>{{ $title ? $title . ' · Today\'s Retail' : "Today's Retail" }}</title>
         @vite(['resources/scss/todays-retail.scss', 'resources/js/todays-retail.js'])
     </head>
@@ -26,20 +28,17 @@
                     <p class="sidebar-heading">Principal</p>
                     <ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li></ul>
                     <p class="sidebar-heading">Equipo</p>
-                    <ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link" href="#" aria-disabled="true"><i data-lucide="users"></i><span>Colaboradores</span></a></li></ul>
+                    @if ($tenantRole === 'management')<ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('team.*') ? 'active' : '' }}" href="{{ route('team.index') }}"><i data-lucide="users"></i><span>Colaboradores</span></a></li></ul>@endif
                     <p class="sidebar-heading">Operations</p>
-                    <ul class="side-nav">
+                    @if ($tenantRole === 'management')<ul class="side-nav">
                         <li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('operations.branches') ? 'active' : '' }}" href="{{ route('operations.branches') }}"><i data-lucide="store"></i><span>Sucursales</span></a></li>
                         <li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('operations.shifts') ? 'active' : '' }}" href="{{ route('operations.shifts') }}"><i data-lucide="clock-3"></i><span>Turnos</span></a></li>
-                        <li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('operations.schedule') ? 'active' : '' }}" href="{{ route('operations.schedule') }}"><i data-lucide="calendar-days"></i><span>Horarios</span></a></li>
-                    </ul>
+                    </ul>@endif
+                    @if (in_array($tenantRole, ['management', 'store_admin'], true))<ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('operations.schedule') ? 'active' : '' }}" href="{{ route('operations.schedule') }}"><i data-lucide="calendar-days"></i><span>Horarios</span></a></li></ul>@endif
                     <p class="sidebar-heading">Tasks</p>
-                    <ul class="side-nav">
-                        <li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}" href="{{ route('tasks.index') }}"><i data-lucide="list-todo"></i><span>Tareas</span></a></li>
-                        <li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('checklists.*') ? 'active' : '' }}" href="{{ route('checklists.index') }}"><i data-lucide="clipboard-check"></i><span>Checklists</span></a></li>
-                    </ul>
+                    @if ($tenantRole === 'management')<ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}" href="{{ route('tasks.index') }}"><i data-lucide="list-todo"></i><span>Tareas</span></a></li><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('checklists.*') ? 'active' : '' }}" href="{{ route('checklists.index') }}"><i data-lucide="clipboard-check"></i><span>Checklists</span></a></li></ul>@endif
                     <p class="sidebar-heading">Knowledge</p>
-                    <ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('knowledge.*') ? 'active' : '' }}" href="{{ route('knowledge.articles') }}"><i data-lucide="book-open"></i><span>Knowledge Center</span></a></li></ul>
+                    @if ($tenantRole === 'management')<ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('knowledge.*') ? 'active' : '' }}" href="{{ route('knowledge.articles') }}"><i data-lucide="book-open"></i><span>Knowledge Center</span></a></li></ul>@endif
                 </div>
             </aside>
 
@@ -52,5 +51,6 @@
                 <footer class="app-footer">© {{ now()->year }} Today's Retail</footer>
             </main>
         </div>
+        @stack('page-scripts')
     </body>
 </html>
