@@ -31,6 +31,27 @@ return [
 
     'connections' => [
 
+        'core' => [
+            'driver' => env('CORE_DB_CONNECTION', 'mariadb'),
+            'url' => env('CORE_DB_URL'),
+            'host' => env('CORE_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('CORE_DB_PORT', env('DB_PORT', '3306')),
+            'database' => env('CORE_DB_DATABASE', 'podiqdte_todays_core'),
+            'username' => env('CORE_DB_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('CORE_DB_PASSWORD', env('DB_PASSWORD', '')),
+            'unix_socket' => env('CORE_DB_SOCKET', env('DB_SOCKET', '')),
+            'charset' => env('CORE_DB_CHARSET', env('DB_CHARSET', 'utf8mb4')),
+            'collation' => env('CORE_DB_COLLATION', env('DB_COLLATION', 'utf8mb4_unicode_ci')),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'foreign_key_constraints' => env('CORE_DB_FOREIGN_KEYS', true),
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('CORE_MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),

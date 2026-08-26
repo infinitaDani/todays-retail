@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class AccountUser extends Pivot
 {
+    protected $connection = 'core';
+
     protected $table = 'account_user';
 
     public $incrementing = true;

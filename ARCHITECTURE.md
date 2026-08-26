@@ -26,6 +26,10 @@ Current database:
 
 podiqdte_todays_core
 
+Laravel must access this database through the explicit `core` connection. All
+Core models use that connection directly and must never depend on Laravel's
+default connection, which may later be used or replaced by a tenant context.
+
 Core responsibilities:
 
 - User authentication

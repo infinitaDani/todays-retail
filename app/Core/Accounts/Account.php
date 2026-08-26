@@ -12,6 +12,8 @@ class Account extends Model
 {
     use HasFactory;
 
+    protected $connection = 'core';
+
     protected $fillable = [
         'name',
         'ruc',
