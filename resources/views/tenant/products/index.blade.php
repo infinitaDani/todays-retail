@@ -37,15 +37,89 @@
     </form>
 
     <div class="tr-card p-0 overflow-hidden">
-        <div class="table-responsive"><table class="table table-custom align-middle mb-0"><thead><tr><th></th><th>Código catálogo</th><th>Producto</th><th>Categoría</th>@if ($settings->manages_collections)<th>Colección</th>@endif@if ($settings->manages_collection_lines)<th>Línea</th>@endif<th>Variantes</th><th>Stock</th><th>Estado</th><th></th></tr></thead><tbody>
-            @forelse ($products as $product)
-                <tr><td><input form="bulk-form" type="checkbox" name="product_ids[]" value="{{ $product->id }}"></td><td>{{ $product->catalog_code ?: '—' }}</td><td class="fw-semibold">{{ $product->name }}</td><td>{{ $product->category?->name ?: '—' }}</td>@if ($settings->manages_collections)<td>{{ $product->collection?->name ?: '—' }}</td>@endif@if ($settings->manages_collection_lines)<td>{{ $product->line?->name ?: '—' }}</td>@endif<td>{{ $product->variants_count }}</td><td>{{ $product->variants_sum_stock ?? 0 }}</td><td><span class="badge badge-soft-{{ $product->is_active ? 'success' : 'warning' }}">{{ $product->is_active ? 'Activo' : 'Inactivo' }}</span></td><td><a class="btn btn-sm btn-light" href="{{ route('products.show', $product) }}"><i data-lucide="eye"></i></a></td></tr>
-            @empty
-                <tr><td colspan="10"><div class="listing-empty">No hay productos todavía.</div></td></tr>
-            @endforelse
-        </tbody></table></div>
-        <div class="listing-pagination px-3">{{ $products->links() }}</div>
+    <div class="table-responsive">
+        <table class="table table-custom align-middle mb-0">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Código catálogo</th>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+
+                    @if ($settings->manages_collections)
+                        <th>Colección</th>
+                    @endif
+
+                    @if ($settings->manages_collection_lines)
+                        <th>Línea</th>
+                    @endif
+
+                    <th>Variantes</th>
+                    <th>Stock</th>
+                    <th>Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @forelse ($products as $product)
+                    <tr>
+                        <td>
+                            <input
+                                form="bulk-form"
+                                type="checkbox"
+                                name="product_ids[]"
+                                value="{{ $product->id }}"
+                            >
+                        </td>
+
+                        <td>{{ $product->catalog_code ?: '—' }}</td>
+                        <td class="fw-semibold">{{ $product->name }}</td>
+                        <td>{{ $product->category?->name ?: '—' }}</td>
+
+                        @if ($settings->manages_collections)
+                            <td>{{ $product->collection?->name ?: '—' }}</td>
+                        @endif
+
+                        @if ($settings->manages_collection_lines)
+                            <td>{{ $product->line?->name ?: '—' }}</td>
+                        @endif
+
+                        <td>{{ $product->variants_count }}</td>
+                        <td>{{ $product->variants_sum_stock ?? 0 }}</td>
+
+                        <td>
+                            <span class="badge badge-soft-{{ $product->is_active ? 'success' : 'warning' }}">
+                                {{ $product->is_active ? 'Activo' : 'Inactivo' }}
+                            </span>
+                        </td>
+
+                        <td>
+                            <a
+                                class="btn btn-sm btn-light"
+                                href="{{ route('products.show', $product) }}"
+                            >
+                                <i data-lucide="eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="10">
+                            <div class="listing-empty">
+                                No hay productos todavía.
+                            </div>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
+
+    <div class="listing-pagination px-3">
+        {{ $products->links() }}
+    </div>
+</div>
 
     <form id="bulk-form" class="tr-card mt-3" method="POST" action="{{ route('products.bulk') }}">
         @csrf
