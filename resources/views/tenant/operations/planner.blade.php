@@ -25,7 +25,9 @@
                 <label class="form-label" for="planner-month">Período</label>
                 <select class="form-select" id="planner-month" name="month">
                     @for ($offset = -12; $offset <= 12; $offset++)
-                        @php($candidate = now()->startOfMonth()->addMonths($offset))
+                        @php
+                            $candidate = now()->startOfMonth()->addMonths($offset);
+                        @endphp
                         <option value="{{ $candidate->format('Y-m') }}" @selected($candidate->format('Y-m') === $month->format('Y-m'))>{{ $candidate->translatedFormat('F Y') }}</option>
                     @endfor
                 </select>
@@ -81,8 +83,12 @@
         </div>
     @endif
     @if ($viewMode === 'week')
-        @php($previousWeek = $week->copy()->subWeek())
-        @php($nextWeek = $week->copy()->addWeek())
+        @php
+            $previousWeek = $week->copy()->subWeek();
+        @endphp
+        @php
+            $nextWeek = $week->copy()->addWeek();
+        @endphp
         <div class="d-flex gap-2 mb-3">
             @if ($previousWeek->endOfWeek()->gte($month->copy()->startOfMonth()))
                 <a class="btn btn-outline-secondary" href="{{ route('operations.planner', ['month' => $month->format('Y-m'), 'branch_id' => $branchId, 'view' => 'week', 'week' => $previousWeek->format('Y-m-d')]) }}">← Semana anterior</a>
@@ -180,7 +186,11 @@
                                     $absent = $absences->contains(fn ($absence) => $absence->core_user_id === $profile->core_user_id && $absence->starts_at?->toDateString() <= $date && $absence->ends_at?->toDateString() >= $date);
                                 @endphp
 
-                                @php($editableDate = $date >= $activeStart->toDateString() && $date <= $activeEnd->toDateString() && substr($date, 0, 7) === $month->format('Y-m'))
+                                @php
+                                    $editableDate = $date >= $activeStart->toDateString()
+                                        && $date <= $activeEnd->toDateString()
+                                        && substr($date, 0, 7) === $month->format('Y-m');
+                                @endphp
                                 <td class="{{ ! $editableDate ? 'text-muted bg-light' : '' }}">
                                     @if ($editableDate)
                                     <select class="form-select form-select-sm" name="cells[{{ $profile->core_user_id }}:{{ $date }}]" data-user="{{ $profile->core_user_id }}" data-day="{{ $day }}" @disabled($absent || ! in_array($schedulePeriod->status, ['draft', 'approved'], true))>
@@ -219,7 +229,6 @@
         </div>
 
         <button class="btn btn-sm btn-outline-secondary mt-2" type="button" data-copy-week title="Duplicar semana anterior" aria-label="Duplicar semana anterior">Duplicar semana anterior</button>
-    </form>
         </section>
     @endforeach
     </form>
