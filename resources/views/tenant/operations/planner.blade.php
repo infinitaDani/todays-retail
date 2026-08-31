@@ -5,6 +5,18 @@
         <a class="btn btn-light" href="{{ route('operations.schedule.settings') }}">Configuración</a>
     </div>
 
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="btn-group">
+            <a class="btn btn-outline-secondary {{ $viewMode === 'week' ? 'active' : '' }}" href="{{ route('operations.planner', array_filter(['week' => $week->format('Y-m-d'), 'branch_id' => $branchId, 'view' => 'week'])) }}">Semana</a>
+            <a class="btn btn-outline-secondary {{ $viewMode === 'fortnight' ? 'active' : '' }}" href="{{ route('operations.planner', array_filter(['week' => $week->format('Y-m-d'), 'branch_id' => $branchId, 'view' => 'fortnight'])) }}">Quincena</a>
+            <a class="btn btn-outline-secondary {{ $viewMode === 'month' ? 'active' : '' }}" href="{{ route('operations.planner', array_filter(['week' => $week->format('Y-m-d'), 'branch_id' => $branchId, 'view' => 'month'])) }}">Mes</a>
+        </div>
+
+        @if ($schedulePeriod)
+            <span class="badge badge-soft-primary">{{ ['draft' => 'Borrador', 'pending' => 'Pendiente de aprobación', 'approved' => 'Aprobado', 'rejected' => 'Rechazado'][$schedulePeriod->status] }}</span>
+        @endif
+    </div>
+
     <form class="tr-card mb-3" method="GET">
         <div class="row g-2">
             <div class="col-md-4">

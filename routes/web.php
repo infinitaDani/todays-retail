@@ -129,6 +129,9 @@ Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
         Route::get('operations/planner', [WeeklyPlannerController::class, 'plan'])->name('operations.planner');
         Route::post('operations/planner', [WeeklyPlannerController::class, 'save'])->name('operations.planner.save');
         Route::post('operations/planner/copy', [WeeklyPlannerController::class, 'copy'])->name('operations.planner.copy');
+        Route::post('operations/planner/submit', [WeeklyPlannerController::class, 'submit'])->name('operations.planner.submit');
+        Route::patch('operations/schedule-periods/{schedulePeriod}/review', [WeeklyPlannerController::class, 'review'])->name('operations.schedule-periods.review');
+        Route::get('operations/schedule-adjustments', [WeeklyPlannerController::class, 'adjustments'])->name('operations.schedule-adjustments');
         Route::get('operations/schedule/report', [WeeklyPlannerController::class, 'report'])->name('operations.schedule.report');
         Route::get('operations/schedule/settings', [WeeklyPlannerController::class, 'settings'])->name('operations.schedule.settings');
         Route::put('operations/schedule/settings', [WeeklyPlannerController::class, 'updateSettings'])->name('operations.schedule.settings.update');
