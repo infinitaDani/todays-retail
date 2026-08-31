@@ -1,1 +1,66 @@
-<x-layouts.tenant title="Colecciones" subtitle="Colecciones y líneas"><div class="d-flex justify-content-end mb-3"><a class="btn btn-primary" href="{{ route('products.collections.create') }}">Nueva colección</a></div><div class="tr-card"><table class="table table-custom"><thead><tr><th>Nombre</th><th>Referencia</th><th>Líneas</th><th>Productos</th><th>Estado</th><th></th></tr></thead><tbody>@forelse($collections as $c)<tr><td>{{ $c->name }}</td><td>{{ $c->reference?:'—' }}</td><td>{{ $c->lines_count }}</td><td>{{ $c->products_count }}</td><td>{{ $c->is_active?'Activa':'Inactiva' }}</td><td><a class="btn btn-sm btn-light" href="{{ route('products.collections.show',$c) }}"><i data-lucide="eye"></i></a></td></tr>@empty<tr><td colspan="6">No hay colecciones.</td></tr>@endforelse</tbody></table>{{ $collections->links() }}</div></x-layouts.tenant>
+<x-layouts.tenant
+    title="Categorías"
+    subtitle="Máximo dos niveles"
+>
+    <div class="d-flex justify-content-end mb-3">
+        <a
+            class="btn btn-primary"
+            href="{{ route('products.categories.create') }}"
+        >
+            Nueva categoría
+        </a>
+    </div>
+
+    <div class="tr-card">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>Categoría principal</th>
+                    <th>Categoría</th>
+                    <th>Productos</th>
+                    <th>Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @forelse($categories as $c)
+                    <tr>
+                        <td>
+                            {{ $c->parent?->name ?: ($c->parent_id ? '—' : $c->name) }}
+                        </td>
+
+                        <td>
+                            {{ $c->parent_id ? $c->name : '—' }}
+                        </td>
+
+                        <td>
+                            {{ $c->products_count }}
+                        </td>
+
+                        <td>
+                            {{ $c->is_active ? 'Activa' : 'Inactiva' }}
+                        </td>
+
+                        <td>
+                            <a
+                                href="{{ route('products.categories.edit', $c) }}"
+                                class="btn btn-sm btn-light"
+                            >
+                                <i data-lucide="pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5">
+                            No hay categorías.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+
+        {{ $categories->links() }}
+    </div>
+</x-layouts.tenant>
