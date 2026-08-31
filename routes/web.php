@@ -16,6 +16,7 @@ use App\Http\Controllers\TenantTeamController;
 use App\Http\Controllers\MyTasksController;
 use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\ProductTypeController;
+use App\Http\Controllers\TenantRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -130,6 +131,11 @@ Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
         Route::delete('operations/assignments/{assignment}', [OperationsController::class, 'destroyAssignment'])->name('operations.assignments.destroy');
     });
     Route::middleware('tenant.operational')->group(function () {
+        Route::get('requests', [TenantRequestController::class, 'index'])->name('requests.index');
+        Route::get('requests/create', [TenantRequestController::class, 'create'])->name('requests.create');
+        Route::post('requests', [TenantRequestController::class, 'store'])->name('requests.store');
+        Route::get('requests/{tenantRequest}', [TenantRequestController::class, 'show'])->name('requests.show');
+        Route::patch('requests/{tenantRequest}/review', [TenantRequestController::class, 'review'])->name('requests.review');
         Route::get('operations/my-tasks', [MyTasksController::class, 'index'])->name('operations.my-tasks');
         Route::post('operations/my-tasks/{execution}/complete', [MyTasksController::class, 'complete'])->name('operations.my-tasks.complete');
         Route::get('knowledge', [KnowledgeController::class, 'center'])->name('knowledge.center');

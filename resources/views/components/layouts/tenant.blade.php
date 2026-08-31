@@ -39,6 +39,17 @@
                         <li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('operations.shifts') ? 'active' : '' }}" href="{{ route('operations.shifts') }}"><i data-lucide="clock-3"></i><span>Turnos</span></a></li>
                     </ul>@endif
                     @if ($canOperateTenant)<ul class="side-nav"><li class="side-nav-item"><span class="side-nav-link"><i data-lucide="calendar-days"></i><span>Horarios</span></span><ul class="side-nav-sub">@if ($canAdministerSchedule)<li><a class="side-nav-link {{ request()->routeIs('operations.schedule') ? 'active' : '' }}" href="{{ route('operations.schedule') }}"><span>Horario mensual</span></a></li>@endif<li><a class="side-nav-link {{ request()->routeIs('operations.my-tasks') ? 'active' : '' }}" href="{{ route('operations.my-tasks') }}"><span>Mis tareas</span></a></li></ul></li></ul>@endif
+                    @if ($canOperateTenant)
+                        <p class="sidebar-heading">Solicitudes</p>
+                        <ul class="side-nav">
+                            <li class="side-nav-item">
+                                <a class="side-nav-link {{ request()->routeIs('requests.*') ? 'active' : '' }}" href="{{ route('requests.index') }}">
+                                    <i data-lucide="file-text"></i>
+                                    <span>Solicitudes</span>
+                                </a>
+                            </li>
+                        </ul>
+                    @endif
                     <p class="sidebar-heading">Tasks</p>
                     @if ($canManageTenant)<ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}" href="{{ route('tasks.index') }}"><i data-lucide="list-todo"></i><span>Tareas</span></a></li><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('checklists.*') ? 'active' : '' }}" href="{{ route('checklists.index') }}"><i data-lucide="clipboard-check"></i><span>Checklists</span></a></li></ul>@endif
                     <p class="sidebar-heading">Knowledge</p>
