@@ -1,0 +1,3 @@
+<div class="mb-3"><label class="form-label">Nombre</label><input class="form-control @error('name') is-invalid @enderror" name="name" value="{{ old('name', $task->name ?? '') }}" required>@error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+<div class="mb-3"><label class="form-label">Descripción</label><textarea class="form-control" rows="5" name="description">{{ old('description', $task->description ?? '') }}</textarea></div>
+<div><label class="form-label">Estado</label><select class="form-select" name="status"><option value="active" @selected(old('status', $task->status ?? 'active') === 'active')>Activa</option><option value="inactive" @selected(old('status', $task->status ?? '') === 'inactive')>Inactiva</option></select></div>

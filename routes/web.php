@@ -9,8 +9,11 @@ use App\Http\Controllers\CoreAdmin\RoleController as CoreAdminRoleController;
 use App\Http\Controllers\CoreAdmin\UserController as CoreAdminUserController;
 use App\Http\Controllers\KnowledgeController;
 use App\Http\Controllers\OperationsController;
+use App\Http\Controllers\BranchController;
+use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\TasksController;
 use App\Http\Controllers\TenantTeamController;
+use App\Http\Controllers\MyTasksController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -53,17 +56,48 @@ Route::prefix('core-admin')->as('admin.')->middleware(['auth', 'core.admin'])->g
 
 Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
     Route::middleware('tenant.management')->group(function () {
-        Route::get('operations/branches', [OperationsController::class, 'branches'])->name('operations.branches');
-        Route::post('operations/branches', [OperationsController::class, 'storeBranch'])->name('operations.branches.store');
-        Route::get('operations/shifts', [OperationsController::class, 'shifts'])->name('operations.shifts');
-        Route::post('operations/shifts', [OperationsController::class, 'storeShift'])->name('operations.shifts.store');
+        Route::get('operations/branches', [BranchController::class, 'index'])->name('operations.branches');
+        Route::get('operations/branches/create', [BranchController::class, 'create'])->name('operations.branches.create');
+        Route::post('operations/branches', [BranchController::class, 'store'])->name('operations.branches.store');
+        Route::get('operations/branches/{branch}', [BranchController::class, 'show'])->name('operations.branches.show');
+        Route::get('operations/branches/{branch}/edit', [BranchController::class, 'edit'])->name('operations.branches.edit');
+        Route::put('operations/branches/{branch}', [BranchController::class, 'update'])->name('operations.branches.update');
+        Route::patch('operations/branches/{branch}/status', [BranchController::class, 'toggle'])->name('operations.branches.status');
+        Route::delete('operations/branches/{branch}', [BranchController::class, 'destroy'])->name('operations.branches.destroy');
+        Route::get('operations/shifts', [ShiftController::class, 'index'])->name('operations.shifts');
+        Route::get('operations/shifts/create', [ShiftController::class, 'create'])->name('operations.shifts.create');
+        Route::post('operations/shifts', [ShiftController::class, 'store'])->name('operations.shifts.store');
+        Route::get('operations/shifts/{shift}', [ShiftController::class, 'show'])->name('operations.shifts.show');
+        Route::get('operations/shifts/{shift}/edit', [ShiftController::class, 'edit'])->name('operations.shifts.edit');
+        Route::put('operations/shifts/{shift}', [ShiftController::class, 'update'])->name('operations.shifts.update');
+        Route::patch('operations/shifts/{shift}/status', [ShiftController::class, 'toggle'])->name('operations.shifts.status');
+        Route::delete('operations/shifts/{shift}', [ShiftController::class, 'destroy'])->name('operations.shifts.destroy');
         Route::get('tasks/tasks', [TasksController::class, 'tasks'])->name('tasks.index');
+        Route::get('tasks/tasks/create', [TasksController::class, 'createTask'])->name('tasks.create');
         Route::post('tasks/tasks', [TasksController::class, 'storeTask'])->name('tasks.store');
+        Route::get('tasks/tasks/{task}', [TasksController::class, 'showTask'])->name('tasks.show');
+        Route::get('tasks/tasks/{task}/edit', [TasksController::class, 'editTask'])->name('tasks.edit');
+        Route::put('tasks/tasks/{task}', [TasksController::class, 'updateTask'])->name('tasks.update');
+        Route::patch('tasks/tasks/{task}/status', [TasksController::class, 'toggleTask'])->name('tasks.status');
+        Route::delete('tasks/tasks/{task}', [TasksController::class, 'destroyTask'])->name('tasks.destroy');
         Route::get('tasks/checklists', [TasksController::class, 'checklists'])->name('checklists.index');
+        Route::get('tasks/checklists/create', [TasksController::class, 'createChecklist'])->name('checklists.create');
         Route::post('tasks/checklists', [TasksController::class, 'storeChecklist'])->name('checklists.store');
-        Route::post('tasks/checklists/{checklist}/items', [TasksController::class, 'storeItem'])->name('checklists.items.store');
+        Route::get('tasks/checklists/{checklist}', [TasksController::class, 'showChecklist'])->name('checklists.show');
+        Route::get('tasks/checklists/{checklist}/edit', [TasksController::class, 'editChecklist'])->name('checklists.edit');
+        Route::put('tasks/checklists/{checklist}', [TasksController::class, 'updateChecklist'])->name('checklists.update');
+        Route::patch('tasks/checklists/{checklist}/status', [TasksController::class, 'toggleChecklist'])->name('checklists.status');
+        Route::delete('tasks/checklists/{checklist}', [TasksController::class, 'destroyChecklist'])->name('checklists.destroy');
+        Route::patch('tasks/checklists/{checklist}/items/order', [TasksController::class, 'reorderChecklistItems'])->name('checklists.items.order');
         Route::get('knowledge/articles', [KnowledgeController::class, 'articles'])->name('knowledge.articles');
-        Route::post('knowledge/articles', [KnowledgeController::class, 'storeArticle'])->name('knowledge.articles.store');
+        Route::get('knowledge/articles/create', [KnowledgeController::class, 'create'])->name('knowledge.articles.create');
+        Route::post('knowledge/articles', [KnowledgeController::class, 'store'])->name('knowledge.articles.store');
+        Route::get('knowledge/articles/{article}', [KnowledgeController::class, 'show'])->name('knowledge.articles.show');
+        Route::get('knowledge/articles/{article}/edit', [KnowledgeController::class, 'edit'])->name('knowledge.articles.edit');
+        Route::put('knowledge/articles/{article}', [KnowledgeController::class, 'update'])->name('knowledge.articles.update');
+        Route::patch('knowledge/articles/{article}/publish', [KnowledgeController::class, 'publish'])->name('knowledge.articles.publish');
+        Route::patch('knowledge/articles/{article}/deactivate', [KnowledgeController::class, 'deactivate'])->name('knowledge.articles.deactivate');
+        Route::delete('knowledge/articles/{article}', [KnowledgeController::class, 'destroy'])->name('knowledge.articles.destroy');
         Route::post('knowledge/articles/{article}/assignments', [KnowledgeController::class, 'assign'])->name('knowledge.assignments.store');
         Route::post('knowledge/assignments/{assignment}/open', [KnowledgeController::class, 'open'])->name('knowledge.assignments.open');
         Route::post('knowledge/assignments/{assignment}/complete', [KnowledgeController::class, 'complete'])->name('knowledge.assignments.complete');
@@ -76,8 +110,20 @@ Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
         Route::patch('operations/assignments/{assignment}', [OperationsController::class, 'updateAssignment'])->name('operations.assignments.update');
         Route::delete('operations/assignments/{assignment}', [OperationsController::class, 'destroyAssignment'])->name('operations.assignments.destroy');
     });
+    Route::middleware('tenant.operational')->group(function () {
+        Route::get('operations/my-tasks', [MyTasksController::class, 'index'])->name('operations.my-tasks');
+        Route::post('operations/my-tasks/{execution}/complete', [MyTasksController::class, 'complete'])->name('operations.my-tasks.complete');
+    });
     Route::middleware('tenant.management')->group(function () {
         Route::get('team', [TenantTeamController::class, 'index'])->name('team.index');
-        Route::patch('team/{membership}', [TenantTeamController::class, 'update'])->name('team.update');
+        Route::get('team/create', [TenantTeamController::class, 'create'])->name('team.create');
+        Route::post('team', [TenantTeamController::class, 'store'])->name('team.store');
+        Route::get('team/{staffProfile}', [TenantTeamController::class, 'show'])->name('team.show');
+        Route::get('team/{staffProfile}/edit', [TenantTeamController::class, 'edit'])->name('team.edit');
+        Route::put('team/{staffProfile}', [TenantTeamController::class, 'update'])->name('team.update');
+        Route::patch('team/{staffProfile}/status', [TenantTeamController::class, 'toggleStatus'])->name('team.status');
+        Route::post('team/{staffProfile}/documents', [TenantTeamController::class, 'storeDocument'])->name('team.documents.store');
+        Route::get('team/{staffProfile}/documents/{document}', [TenantTeamController::class, 'downloadDocument'])->name('team.documents.download');
+        Route::delete('team/{staffProfile}/documents/{document}', [TenantTeamController::class, 'destroyDocument'])->name('team.documents.destroy');
     });
 });

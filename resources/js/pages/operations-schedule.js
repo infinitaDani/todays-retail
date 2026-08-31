@@ -27,7 +27,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const filtersQuery = () => Object.fromEntries(filters.filter((filter) => filter.value).map((filter) => [filter.dataset.calendarFilter, filter.value]));
     const request = async (url, method, payload = null) => {
         const response = await fetch(url, { method, headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf }, body: payload ? JSON.stringify(payload) : null });
-        if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.message || 'No se pudo guardar la asignación.'); }
+        if (!response.ok) {
+            const body = await response.json().catch(() => ({}));
+            const validationMessage = body.errors ? Object.values(body.errors).flat()[0] : null;
+            throw new Error(validationMessage || body.message || 'No se pudo guardar la asignación.');
+        }
         return response.status === 204 ? null : response.json();
     };
     const openCreate = (day = new Date()) => { resetForm(); selectedEvent = null; title.textContent = 'Nueva asignación'; remove.classList.add('d-none'); user.disabled = false; date.value = typeof day === 'string' ? day : day.toISOString().slice(0, 10); modal.show(); };
@@ -38,7 +42,23 @@ document.addEventListener('DOMContentLoaded', () => {
         buttonText: { today: 'Hoy', month: 'Mes' }, headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth' },
         events: async (info, success, failure) => { try { const url = new URL(root.dataset.eventsUrl, window.location.origin); url.search = new URLSearchParams({ start: info.startStr, end: info.endStr, ...filtersQuery() }); const response = await fetch(url, { headers: { Accept: 'application/json' } }); if (!response.ok) throw new Error('No se pudieron cargar las asignaciones.'); success(await response.json()); } catch (exception) { failure(exception); } },
         dateClick: (info) => openCreate(info.dateStr), eventClick: (info) => openEdit(info.event),
-        eventContent: (info) => { const container = document.createElement('div'); const eventTitle = document.createElement('div'); const eventBranch = document.createElement('div'); eventTitle.className = 'tr-event-title'; eventTitle.textContent = info.event.title; eventBranch.className = 'tr-event-branch'; eventBranch.textContent = info.event.extendedProps.branch_name; container.append(eventTitle, eventBranch); return { domNodes: [container] }; },
+        eventContent: (info) => {
+            const container = document.createElement('div');
+            const eventTitle = document.createElement('div');
+            const eventBranch = document.createElement('div');
+            const eventHours = document.createElement('div');
+            const eventShift = document.createElement('div');
+            eventTitle.className = 'tr-event-title';
+            eventBranch.className = 'tr-event-branch';
+            eventHours.className = 'tr-event-hours';
+            eventShift.className = 'tr-event-shift';
+            eventTitle.textContent = info.event.extendedProps.user_name;
+            eventBranch.textContent = `⌖ ${info.event.extendedProps.branch_name}`;
+            eventHours.textContent = `◷ ${info.event.extendedProps.shift_hours}`;
+            eventShift.textContent = info.event.extendedProps.shift_name;
+            container.append(eventTitle, eventBranch, eventHours, eventShift);
+            return { domNodes: [container] };
+        },
     });
     calendar.render();
     filters.forEach((filter) => filter.addEventListener('change', () => calendar.refetchEvents()));

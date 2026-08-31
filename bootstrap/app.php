@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureActiveAccount;
 use App\Http\Middleware\EnsureCoreAdministrator;
 use App\Http\Middleware\EnsureScheduleAdministrator;
 use App\Http\Middleware\EnsureTenantManagement;
+use App\Http\Middleware\EnsureTenantOperational;
 use App\Http\Middleware\InitializeTenant;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'core.admin' => EnsureCoreAdministrator::class,
             'schedule.admin' => EnsureScheduleAdministrator::class,
             'tenant.management' => EnsureTenantManagement::class,
+            'tenant.operational' => EnsureTenantOperational::class,
             'tenant' => InitializeTenant::class,
         ]);
     })

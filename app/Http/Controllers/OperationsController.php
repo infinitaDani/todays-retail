@@ -10,11 +10,13 @@ use App\Modules\Operations\Models\StaffProfile;
 use App\Tenancy\AuthorizedCoreUser;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
+use Illuminate\Validation\ValidationException;
 
 class OperationsController extends Controller
 {
@@ -39,20 +41,57 @@ class OperationsController extends Controller
         if (! empty($data['shift_id']) && ! Shift::query()->whereKey($data['shift_id'])->exists()) abort(422, 'El turno seleccionado no existe.');
         $assignments = Assignment::query()->with(['branch', 'shift'])->where('date', '>=', $start->toDateString())->where('date', '<', $end->toDateString())->when($branchId, fn (Builder $query) => $query->where('branch_id', $branchId))->when($data['core_user_id'] ?? null, fn (Builder $query, $userId) => $query->where('core_user_id', $userId))->when($data['shift_id'] ?? null, fn (Builder $query, $shiftId) => $query->where('shift_id', $shiftId))->get();
         $users = $account->users()->whereIn('users.id', $assignments->pluck('core_user_id')->unique())->get()->keyBy('id');
-        return response()->json($assignments->map(function (Assignment $assignment) use ($users): array { $user = $users->get($assignment->core_user_id); return ['id' => (string) $assignment->id, 'title' => trim(($user?->name ?? 'Colaborador').' · '.$assignment->shift->name), 'start' => $assignment->date->toDateString(), 'allDay' => true, 'classNames' => ['tr-schedule-event'], 'extendedProps' => ['core_user_id' => $assignment->core_user_id, 'user_name' => $user?->name ?? 'Colaborador', 'branch_id' => $assignment->branch_id, 'branch_name' => $assignment->branch->name, 'shift_id' => $assignment->shift_id, 'shift_name' => $assignment->shift->name]]; }));
+        return response()->json($assignments->map(function (Assignment $assignment) use ($users): array {
+            $user = $users->get($assignment->core_user_id);
+            $shift = $assignment->shift;
+
+            return [
+                'id' => (string) $assignment->id,
+                'title' => $user?->name ?? 'Colaborador',
+                'start' => $assignment->date->toDateString(),
+                'allDay' => true,
+                'classNames' => ['tr-schedule-event'],
+                'extendedProps' => [
+                    'core_user_id' => $assignment->core_user_id,
+                    'user_name' => $user?->name ?? 'Colaborador',
+                    'branch_id' => $assignment->branch_id,
+                    'branch_name' => $assignment->branch->name,
+                    'shift_id' => $assignment->shift_id,
+                    'shift_name' => $shift->name,
+                    'shift_hours' => substr((string) $shift->start_time, 0, 5).' → '.substr((string) $shift->end_time, 0, 5),
+                ],
+            ];
+        }));
     }
 
     public function storeAssignment(Request $request, AuthorizedCoreUser $authorizedUsers): JsonResponse
     {
         $data = $request->validate(['core_user_id' => ['required', 'integer'], 'branch_id' => ['nullable', 'integer'], 'shift_id' => ['required', 'integer'], 'date' => ['required', 'date']]); $scope = $request->attributes->get('tenantOperationalScope'); $account = $request->attributes->get('tenantAccount'); $branchId = $this->filteredBranchId($data['branch_id'] ?? null, $scope, true);
-        $authorizedUsers->ensure($account, (int) $data['core_user_id']); $this->ensureTargetUser($account, (int) $data['core_user_id'], $branchId, $scope); $this->ensureActiveShift((int) $data['shift_id']);
-        $assignment = Assignment::create(['core_user_id' => $data['core_user_id'], 'branch_id' => $branchId, 'shift_id' => $data['shift_id'], 'date' => $data['date']]); return response()->json(['id' => $assignment->id], 201);
+        $authorizedUsers->ensure($account, (int) $data['core_user_id']); $this->ensureTargetUser($account, (int) $data['core_user_id'], $branchId, $scope); $this->ensureActiveShift((int) $data['shift_id']); $this->ensureNoDuplicateAssignment((int) $data['core_user_id'], $data['date']);
+        try {
+            $assignment = Assignment::create(['core_user_id' => $data['core_user_id'], 'branch_id' => $branchId, 'shift_id' => $data['shift_id'], 'date' => $data['date']]);
+        } catch (QueryException $exception) {
+            if ($this->isAssignmentDuplicate($exception)) {
+                throw ValidationException::withMessages(['date' => 'Este colaborador ya tiene un turno asignado para esta fecha.']);
+            }
+            throw $exception;
+        }
+        return response()->json(['id' => $assignment->id], 201);
     }
 
     public function updateAssignment(Request $request, Assignment $assignment): JsonResponse
     {
         $data = $request->validate(['branch_id' => ['nullable', 'integer'], 'shift_id' => ['required', 'integer'], 'date' => ['required', 'date']]); $scope = $request->attributes->get('tenantOperationalScope'); $account = $request->attributes->get('tenantAccount'); $this->ensureAssignmentIsInScope($assignment, $scope); $branchId = $this->filteredBranchId($data['branch_id'] ?? null, $scope, true);
-        $this->ensureTargetUser($account, $assignment->core_user_id, $branchId, $scope); $this->ensureActiveShift((int) $data['shift_id']); $assignment->update(['branch_id' => $branchId, 'shift_id' => $data['shift_id'], 'date' => $data['date']]); return response()->json(['id' => $assignment->id]);
+        $this->ensureTargetUser($account, $assignment->core_user_id, $branchId, $scope); $this->ensureActiveShift((int) $data['shift_id']); $this->ensureNoDuplicateAssignment($assignment->core_user_id, $data['date'], $assignment->id);
+        try {
+            $assignment->update(['branch_id' => $branchId, 'shift_id' => $data['shift_id'], 'date' => $data['date']]);
+        } catch (QueryException $exception) {
+            if ($this->isAssignmentDuplicate($exception)) {
+                throw ValidationException::withMessages(['date' => 'Este colaborador ya tiene un turno asignado para esta fecha.']);
+            }
+            throw $exception;
+        }
+        return response()->json(['id' => $assignment->id]);
     }
 
     public function destroyAssignment(Request $request, Assignment $assignment): JsonResponse { $this->ensureAssignmentIsInScope($assignment, $request->attributes->get('tenantOperationalScope')); $assignment->delete(); return response()->json(status: 204); }
@@ -62,4 +101,6 @@ class OperationsController extends Controller
     private function ensureTargetUser(Account $account, int $userId, ?int $branchId, array $scope): void { $membership = $account->memberships()->with(['role', 'user'])->where('user_id', $userId)->first(); if (! $membership || $membership->user?->status !== 'active') throw new AuthorizationException('El colaborador no pertenece a la cuenta activa.'); if ($scope['branch_id'] && $branchId !== $scope['branch_id']) throw new AuthorizationException('No puedes usar otra sucursal.'); if ($branchId !== null && in_array($membership->role?->code, ['store_admin', 'advisor'], true)) { $profile = StaffProfile::query()->where('core_user_id', $userId)->first(); if (! $profile?->branch_id || $profile->branch_id !== $branchId) throw new AuthorizationException('El colaborador debe asignarse únicamente a su sucursal operativa.'); } }
     private function ensureActiveShift(int $shiftId): void { if (! Shift::query()->whereKey($shiftId)->where('status', 'active')->exists()) abort(422, 'El turno seleccionado no está disponible.'); }
     private function ensureAssignmentIsInScope(Assignment $assignment, array $scope): void { if ($scope['branch_id'] && $assignment->branch_id !== $scope['branch_id']) throw new AuthorizationException('No puedes administrar asignaciones de otra sucursal.'); }
+    private function ensureNoDuplicateAssignment(int $userId, string $date, ?int $ignoreId = null): void { if (Assignment::query()->where('core_user_id', $userId)->whereDate('date', $date)->when($ignoreId, fn (Builder $query) => $query->where('id', '!=', $ignoreId))->exists()) throw ValidationException::withMessages(['date' => 'Este colaborador ya tiene un turno asignado para esta fecha.']); }
+    private function isAssignmentDuplicate(QueryException $exception): bool { return str_contains(strtolower($exception->getMessage()), 'assignments_user_date_unique'); }
 }

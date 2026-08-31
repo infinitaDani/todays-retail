@@ -10,6 +10,7 @@ export default defineConfig({
                 'resources/scss/todays-retail.scss',
                 'resources/js/todays-retail.js',
                 'resources/js/pages/operations-schedule.js',
+                'resources/js/pages/checklist-editor.js',
             ],
             refresh: true,
         }),
