@@ -157,6 +157,7 @@ class TenantTeamController extends Controller
             'role_id' => ['required', 'integer'], 'branch_id' => ['nullable', 'integer'],
             'first_name' => ['nullable', 'string', 'max:100'], 'last_name' => ['nullable', 'string', 'max:100'],
             'birth_date' => ['nullable', 'date', 'before:today'], 'phone' => ['nullable', 'string', 'max:50'],
+            'hire_date' => ['nullable', 'date'], 'termination_date' => ['nullable', 'date', 'after_or_equal:hire_date'],
             'emergency_contact_name' => ['nullable', 'string', 'max:150'], 'emergency_contact_phone' => ['nullable', 'string', 'max:50'],
             'emergency_contact_relationship' => ['nullable', 'string', 'max:100'], 'status' => ['required', Rule::in(['active', 'inactive'])],
         ]);
@@ -164,7 +165,7 @@ class TenantTeamController extends Controller
 
     private function profileAttributes(array $data): array
     {
-        return collect($data)->only(['branch_id', 'first_name', 'last_name', 'birth_date', 'phone', 'email', 'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship', 'status'])->all();
+        return collect($data)->only(['branch_id', 'first_name', 'last_name', 'birth_date', 'hire_date', 'termination_date', 'phone', 'email', 'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship', 'status'])->all();
     }
 
     private function operationalRole(int $roleId, TenantOperationalScope $scopes): Role

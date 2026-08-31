@@ -36,6 +36,34 @@
                 </div>
 
                 <div class="col-md-4">
+                    <label class="form-label" for="product-type">Tipo de producto</label>
+                    <select class="form-select" id="product-type" name="product_type_id">
+                        <option value="">Sin tipo</option>
+
+                        @foreach ($productTypes as $type)
+                            <option value="{{ $type->id }}" data-supply="{{ $type->normalized_name === 'suministro' ? '1' : '0' }}" @selected(old('product_type_id', $product->product_type_id ?? null) == $type->id)>
+                                {{ $type->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="col-md-4" data-supply-period hidden>
+                    <label class="form-label" for="usage-period">Periodo de uso</label>
+                    <input class="form-control" id="usage-period" min="1" name="usage_period" type="number" value="{{ old('usage_period', $product->usage_period ?? '') }}">
+                </div>
+
+                <div class="col-md-4" data-supply-period hidden>
+                    <label class="form-label" for="usage-period-unit">Unidad</label>
+                    <select class="form-select" id="usage-period-unit" name="usage_period_unit">
+                        <option value="days">Días</option>
+                        <option value="weeks">Semanas</option>
+                        <option value="months">Meses</option>
+                        <option value="years">Años</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
                     <label class="form-label">Categoría</label>
                     <select class="form-select" name="category_id">
                         <option value="">Sin categoría</option>
@@ -123,16 +151,17 @@
                 </div>
             </div>
 
-            <hr>
+            @if ($attributes->isNotEmpty())
+                <hr>
 
-            <h5>Variantes</h5>
+                <h5>Variantes</h5>
 
-            <p class="text-muted">
+                <p class="text-muted">
                 Agrega las variantes/SKU desde esta tabla.
                 Los atributos disponibles dependen de Configuración.
-            </p>
+                </p>
 
-            <div id="variants">
+                <div id="variants">
                 @foreach (old('variants', $product->variants ?? []) as $i => $variant)
                     <div class="row g-2 mb-2 border-bottom pb-2">
                         <div class="col-md-3">
@@ -163,6 +192,23 @@
                             >
                         </div>
 
+                        <div class="col-md-2">
+                            <input class="form-control" name="variants[{{ $i }}][minimum_stock]" value="{{ is_array($variant) ? ($variant['minimum_stock'] ?? '') : $variant->minimum_stock }}" placeholder="Mínimo inventario">
+                        </div>
+
+                        <div class="col-md-2">
+                            <input class="form-control" name="variants[{{ $i }}][pvp1]" value="{{ is_array($variant) ? ($variant['pvp1'] ?? '') : $variant->pvp1 }}" placeholder="PVP1">
+                        </div>
+
+                        @if ($settings->manages_multiple_prices)
+                            <div class="col-md-2"><input class="form-control" name="variants[{{ $i }}][pvp2]" value="{{ is_array($variant) ? ($variant['pvp2'] ?? '') : $variant->pvp2 }}" placeholder="PVP2"></div>
+                            <div class="col-md-2"><input class="form-control" name="variants[{{ $i }}][pvp3]" value="{{ is_array($variant) ? ($variant['pvp3'] ?? '') : $variant->pvp3 }}" placeholder="PVP3"></div>
+                        @endif
+
+                        @if ($settings->manages_distribution_price)
+                            <div class="col-md-2"><input class="form-control" name="variants[{{ $i }}][distribution_price]" value="{{ is_array($variant) ? ($variant['distribution_price'] ?? '') : $variant->distribution_price }}" placeholder="PVP distribución"></div>
+                        @endif
+
                         @foreach ($attributes as $attribute)
                             <div class="col-md-2">
                                 <select
@@ -187,15 +233,18 @@
                         @endforeach
                     </div>
                 @endforeach
-            </div>
+                </div>
 
-            <button
+                <button
                 type="button"
                 class="btn btn-outline-secondary"
                 id="add-variant"
             >
                 Agregar variante
-            </button>
+                </button>
+            @else
+                <p class="text-muted mt-3 mb-0">No hay atributos habilitados. Este producto se guardará sin variantes configurables.</p>
+            @endif
 
             <div class="mt-4">
                 <button class="btn btn-primary">
@@ -214,12 +263,28 @@
 
     @push('page-scripts')
         <script>
-            let n = document.querySelectorAll('#variants .row').length;
+            const productType = document.querySelector('#product-type');
+            const supplyPeriods = document.querySelectorAll('[data-supply-period]');
 
-            document.getElementById('add-variant').onclick = () => {
-                document.getElementById('variants').insertAdjacentHTML(
-                    'beforeend',
-                    `<div class="row g-2 mb-2 border-bottom pb-2">
+            const refreshSupplyFields = () => {
+                const isSupply = productType.options[productType.selectedIndex]?.dataset.supply === '1';
+
+                supplyPeriods.forEach((field) => {
+                    field.hidden = !isSupply;
+                });
+            };
+
+            productType.addEventListener('change', refreshSupplyFields);
+            refreshSupplyFields();
+
+            let n = document.querySelectorAll('#variants .row').length;
+            const addVariant = document.getElementById('add-variant');
+
+            if (addVariant) {
+                addVariant.onclick = () => {
+                    document.getElementById('variants').insertAdjacentHTML(
+                        'beforeend',
+                        `<div class="row g-2 mb-2 border-bottom pb-2">
                         <div class="col-md-3">
                             <input
                                 class="form-control"
@@ -240,9 +305,68 @@
                         <div class="col-md-2">
                             <input
                                 class="form-control"
-                                name="variants[${n}][sale_price]"
-                                placeholder="Precio"
+                                name="variants[${n}][minimum_stock]"
+                                placeholder="Mínimo inventario"
                             >
+                        </div>
+
+                        <div class="col-md-2">
+                            <input
+                                class="form-control"
+                                name="variants[${n}][pvp1]"
+                                placeholder="PVP1"
+                            >
+                        </div>
+
+                        <div class="col-md-2">
+                            <input
+                                class="form-control"
+                                name="variants[${n}][pvp1_with_tax]"
+                                placeholder="PVP1 + IVA"
+                            >
+                        </div>
+
+                        @if ($settings->manages_multiple_prices)
+                            <div class="col-md-2">
+                                <input class="form-control" name="variants[${n}][pvp2]" placeholder="PVP2">
+                            </div>
+                            <div class="col-md-2">
+                                <input class="form-control" name="variants[${n}][pvp2_with_tax]" placeholder="PVP2 + IVA">
+                            </div>
+                            <div class="col-md-2">
+                                <input class="form-control" name="variants[${n}][pvp3]" placeholder="PVP3">
+                            </div>
+                            <div class="col-md-2">
+                                <input class="form-control" name="variants[${n}][pvp3_with_tax]" placeholder="PVP3 + IVA">
+                            </div>
+                        @endif
+
+                        @if ($settings->manages_distribution_price)
+                            <div class="col-md-2">
+                                <input class="form-control" name="variants[${n}][distribution_price]" placeholder="PVP distribución">
+                            </div>
+                            <div class="col-md-2">
+                                <input class="form-control" name="variants[${n}][distribution_price_with_tax]" placeholder="PVP distribución + IVA">
+                            </div>
+                        @endif
+
+                        <div class="col-md-2">
+                            <input class="form-control" name="variants[${n}][tax_rate]" placeholder="% IVA">
+                        </div>
+
+                        <div class="col-12 d-flex flex-wrap gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" id="sale-${n}" name="variants[${n}][is_for_sale]" type="checkbox" value="1" checked>
+                                <label class="form-check-label" for="sale-${n}">Para la venta</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" id="purchase-${n}" name="variants[${n}][is_for_purchase]" type="checkbox" value="1">
+                                <label class="form-check-label" for="purchase-${n}">Para la compra</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" id="inventory-${n}" name="variants[${n}][is_inventory_item]" type="checkbox" value="1" checked>
+                                <label class="form-check-label" for="inventory-${n}">Inventariable</label>
+                            </div>
                         </div>
 
                         @foreach ($attributes as $attribute)
@@ -262,10 +386,11 @@
                             </div>
                         @endforeach
                     </div>`
-                );
+                    );
 
-                n++;
-            };
+                    n++;
+                };
+            }
         </script>
     @endpush
 </x-layouts.tenant>
