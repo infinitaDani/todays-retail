@@ -28,6 +28,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.operational' => EnsureTenantOperational::class,
             'tenant' => InitializeTenant::class,
         ]);
+		$middleware->appendToPriorityList(
+			\Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+			EnsureActiveAccount::class
+		);
+
+		$middleware->appendToPriorityList(
+			EnsureActiveAccount::class,
+			InitializeTenant::class
+		);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
