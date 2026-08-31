@@ -195,18 +195,17 @@ class WeeklyPlannerController extends Controller
             ->endOfMonth()
             ->endOfWeek();
 
-        $weeks = collect(
-            range(
-                0,
-                $lastWeek->diffInWeeks(
-                    $firstWeek
-                )
-            )
-        )->map(
-            fn ($offset) => $firstWeek
-                ->copy()
-                ->addWeeks($offset)
-        );
+        $weeks = collect();
+
+		$currentWeek = $firstWeek->copy();
+
+		while ($currentWeek->lte($lastWeek)) {
+			$weeks->push(
+				$currentWeek->copy()
+			);
+
+			$currentWeek->addWeek();
+		}
 
         $shifts = Shift::query()
             ->where('status', 'active')
