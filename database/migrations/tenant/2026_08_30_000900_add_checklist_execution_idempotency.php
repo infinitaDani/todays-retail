@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use RuntimeException;
+
 
 return new class extends Migration
 {
@@ -19,7 +19,7 @@ return new class extends Migration
 
         if ($duplicates->isNotEmpty()) {
             $conflicts = $duplicates->map(fn (object $row) => "checklist_id={$row->checklist_id}, core_user_id={$row->core_user_id}, assignment_id={$row->assignment_id}, date={$row->execution_date}, executions={$row->total}")->implode('; ');
-            throw new RuntimeException("No se puede crear la protección de idempotencia de checklist executions. Corrige manualmente estos duplicados: {$conflicts}");
+            throw new \RuntimeException("No se puede crear la protección de idempotencia de checklist executions. Corrige manualmente estos duplicados: {$conflicts}");
         }
 
         Schema::connection('tenant')->table('checklist_executions', function (Blueprint $table) {
