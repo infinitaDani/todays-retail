@@ -17,6 +17,7 @@ use App\Http\Controllers\MyTasksController;
 use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\TenantRequestController;
+use App\Http\Controllers\WeeklyPlannerController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -124,6 +125,12 @@ Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
         Route::post('knowledge/assignments/{assignment}/confirm', [KnowledgeController::class, 'confirm'])->name('knowledge.assignments.confirm');
     });
     Route::middleware('schedule.admin')->group(function () {
+        Route::get('operations/planner', [WeeklyPlannerController::class, 'plan'])->name('operations.planner');
+        Route::post('operations/planner', [WeeklyPlannerController::class, 'save'])->name('operations.planner.save');
+        Route::post('operations/planner/copy', [WeeklyPlannerController::class, 'copy'])->name('operations.planner.copy');
+        Route::get('operations/schedule/report', [WeeklyPlannerController::class, 'report'])->name('operations.schedule.report');
+        Route::get('operations/schedule/settings', [WeeklyPlannerController::class, 'settings'])->name('operations.schedule.settings');
+        Route::put('operations/schedule/settings', [WeeklyPlannerController::class, 'updateSettings'])->name('operations.schedule.settings.update');
         Route::get('operations/schedule', [OperationsController::class, 'schedule'])->name('operations.schedule');
         Route::get('operations/schedule/events', [OperationsController::class, 'scheduleEvents'])->name('operations.schedule.events');
         Route::post('operations/assignments', [OperationsController::class, 'storeAssignment'])->name('operations.assignments.store');
