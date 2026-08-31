@@ -47,31 +47,39 @@ class WeeklyPlannerController extends Controller
         $assignments = Assignment::query()->with('shift')->whereIn('core_user_id', $userIds)->whereBetween('date', [$month->copy()->startOfMonth()->toDateString(), $month->copy()->endOfMonth()->toDateString()])->get()->keyBy(fn ($assignment) => $assignment->core_user_id.'-'.$assignment->date->toDateString());
         $absences = TenantRequest::query()->where('status', 'approved')->whereIn('type', ['vacation', 'permission'])->whereIn('core_user_id', $userIds)->whereDate('starts_at', '<=', $week->copy()->addDays(6))->whereDate('ends_at', '>=', $week)->get();
         $users = $request->attributes->get('tenantAccount')->users()->whereIn('users.id', $userIds)->get()->keyBy('id');
+        $fortnight = $request->integer('fortnight', 1) === 2 ? 2 : 1;
+        $activeStart = $viewMode === 'fortnight' ? ($fortnight === 1 ? $month->copy()->startOfMonth() : $month->copy()->day(16)) : ($viewMode === 'week' ? $week->copy() : $month->copy()->startOfMonth());
+        $activeEnd = $viewMode === 'fortnight' ? ($fortnight === 1 ? $month->copy()->day(min(15, $month->daysInMonth)) : $month->copy()->endOfMonth()) : ($viewMode === 'week' ? $week->copy()->endOfWeek() : $month->copy()->endOfMonth());
         $weeks = match ($viewMode) {
             'month' => collect(range(0, $month->copy()->endOfMonth()->endOfWeek()->diffInWeeks($month->copy()->startOfMonth()->startOfWeek())))->map(fn ($offset) => $month->copy()->startOfMonth()->startOfWeek()->addWeeks($offset)),
-            'fortnight' => collect([$month->copy()->startOfMonth()->startOfWeek(), $month->copy()->day($month->day <= 15 ? 8 : 16)->startOfWeek()])->unique(fn ($date) => $date->toDateString()),
+            'fortnight' => collect(range(0, $activeEnd->copy()->endOfWeek()->diffInWeeks($activeStart->copy()->startOfWeek())))->map(fn ($offset) => $activeStart->copy()->startOfWeek()->addWeeks($offset)),
             default => collect([$week]),
         };
-        return view('tenant.operations.planner', ['scope'=>$scope,'branches'=>$this->branches($scope),'branchId'=>$branchId,'month'=>$month,'week'=>$week,'weeks'=>$weeks,'viewMode'=>$viewMode,'schedulePeriod'=>$period,'profiles'=>$profiles,'users'=>$users,'assignments'=>$assignments,'absences'=>$absences,'shifts'=>Shift::where('status','active')->orderBy('name')->get(),'settings'=>ScheduleSetting::firstOrCreate([])]);
+        return view('tenant.operations.planner', ['scope'=>$scope,'branches'=>$this->branches($scope),'branchId'=>$branchId,'month'=>$month,'week'=>$week,'weeks'=>$weeks,'viewMode'=>$viewMode,'fortnight'=>$fortnight,'activeStart'=>$activeStart,'activeEnd'=>$activeEnd,'schedulePeriod'=>$period,'profiles'=>$profiles,'users'=>$users,'assignments'=>$assignments,'absences'=>$absences,'shifts'=>Shift::where('status','active')->orderBy('name')->get(),'settings'=>ScheduleSetting::firstOrCreate([])]);
     }
 
     public function save(Request $request, TenantOperationalScope $scopes): RedirectResponse
     {
         $scope = $scopes->for($request->user(), $request->attributes->get('tenantAccount'));
-        $data = $request->validate(['branch_id'=>['nullable','integer'],'week'=>['required','date'],'cells'=>['required','array'],'cells.*'=>['nullable','integer']]);
+        $data = $request->validate(['branch_id'=>['nullable','integer'],'week'=>['required','date'],'view'=>['nullable','in:week,fortnight,month'],'fortnight'=>['nullable','in:1,2'],'cells'=>['required','array'],'cells.*'=>['nullable','integer']]);
         $branchId = $this->branchId($request, $scope, true);
         $week = Carbon::parse($data['week'])->startOfWeek();
+        $month = $week->copy()->startOfMonth();
+        $rangeStart = ($data['view'] ?? 'month') === 'week' ? $week->copy() : (($data['view'] ?? 'month') === 'fortnight' ? (($data['fortnight'] ?? '1') === '2' ? $month->copy()->day(16) : $month->copy()->startOfMonth()) : $month->copy()->startOfMonth());
+        $rangeEnd = ($data['view'] ?? 'month') === 'week' ? $week->copy()->endOfWeek() : (($data['view'] ?? 'month') === 'fortnight' ? (($data['fortnight'] ?? '1') === '2' ? $month->copy()->endOfMonth() : $month->copy()->day(min(15, $month->daysInMonth))) : $month->copy()->endOfMonth());
         $period = SchedulePeriod::firstOrCreate(['branch_id' => $branchId, 'month_key' => $week->format('Y-m')], ['status' => 'draft', 'created_by_core_user_id' => $request->user()->id]);
         $historicalRequest = $this->approvedHistoricalRequest($period, $request->user()->id);
+        if ($period->status === 'pending') throw ValidationException::withMessages(['schedule' => 'El horario está pendiente de aprobación y no puede modificarse.']);
         if ($period->status === 'approved' && ! $request->boolean('adjustment_mode')) throw ValidationException::withMessages(['schedule' => 'El horario aprobado está congelado. Usa Modo ajustes.']);
         if ($this->isPastPeriod($period) && ! $historicalRequest) throw ValidationException::withMessages(['schedule' => 'Este período histórico requiere autorización aprobada para usar Modo ajustes.']);
         $allowedUsers = StaffProfile::where('branch_id', $branchId)->where('status','active')->pluck('core_user_id');
-        DB::connection('tenant')->transaction(function () use ($data, $week, $branchId, $allowedUsers, $period, $request): void {
+        DB::connection('tenant')->transaction(function () use ($data, $week, $branchId, $allowedUsers, $period, $request, $rangeStart, $rangeEnd): void {
             foreach ($data['cells'] as $key => $shiftId) {
-                [$userId, $offset] = array_map('intval', explode(':', $key));
-                if (! $allowedUsers->contains($userId) || $offset < 0 || $offset > 6) throw new AuthorizationException('Celda fuera de alcance.');
-                $date = $week->copy()->addDays($offset)->toDateString();
+                [$userId, $date] = explode(':', $key, 2);
+                $userId = (int) $userId;
+                if (! $allowedUsers->contains($userId) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) throw new AuthorizationException('Celda fuera de alcance.');
                 if (Carbon::parse($date)->format('Y-m') !== $period->month_key) throw ValidationException::withMessages(['cells' => 'No puedes modificar fechas fuera del período mensual.']);
+                if (Carbon::parse($date)->lt($rangeStart) || Carbon::parse($date)->gt($rangeEnd)) throw ValidationException::withMessages(['cells' => 'No puedes modificar fechas fuera de la vista seleccionada.']);
                 $existing = Assignment::where('core_user_id',$userId)->whereDate('date',$date)->first();
                 if ($period->status === 'approved' && (int) ($existing?->shift_id ?? 0) !== (int) $shiftId) {
                     $reason = $request->input('adjustment_reasons.'.$key);
@@ -91,7 +99,7 @@ class WeeklyPlannerController extends Controller
     public function submit(Request $request, TenantOperationalScope $scopes): RedirectResponse
     { $scope=$scopes->for($request->user(),$request->attributes->get('tenantAccount')); $branchId=$this->branchId($request,$scope,true); $month=$request->validate(['month_key'=>['required','date_format:Y-m']])['month_key']; $period=SchedulePeriod::firstOrCreate(['branch_id'=>$branchId,'month_key'=>$month],['status'=>'draft','created_by_core_user_id'=>$request->user()->id]); if($period->status==='approved') abort(422,'El horario ya fue aprobado.'); $period->update(['status'=>'pending','submitted_by_core_user_id'=>$request->user()->id,'submitted_at'=>now()]); return back()->with('success','Horario enviado a aprobación.'); }
     public function review(Request $request, SchedulePeriod $schedulePeriod, TenantOperationalScope $scopes): RedirectResponse
-    { $scope=$scopes->for($request->user(),$request->attributes->get('tenantAccount')); if(! $scopes->canManageTenant($scope)) throw new AuthorizationException(); $data=$request->validate(['status'=>['required','in:approved,rejected'],'review_comment'=>['nullable','string','max:2000']]); $schedulePeriod->update(['status'=>$data['status'],'reviewed_by_core_user_id'=>$request->user()->id,'reviewed_at'=>now(),'review_comment'=>$data['review_comment']??null]); return back()->with('success','Revisión registrada.'); }
+    { $scope=$scopes->for($request->user(),$request->attributes->get('tenantAccount')); if(! $scopes->canManageTenant($scope)||($scope['branch_id']&&$scope['branch_id']!==$schedulePeriod->branch_id)) throw new AuthorizationException(); $data=$request->validate(['status'=>['required','in:approved,rejected'],'review_comment'=>['required_if:status,rejected','nullable','string','max:2000']]); $schedulePeriod->update(['status'=>$data['status'],'reviewed_by_core_user_id'=>$request->user()->id,'reviewed_at'=>now(),'review_comment'=>$data['review_comment']??null]); return back()->with('success','Revisión registrada.'); }
     public function adjustments(Request $request, TenantOperationalScope $scopes): View
     { $scope=$scopes->for($request->user(),$request->attributes->get('tenantAccount')); $branchId=$this->branchId($request,$scope); $items=ScheduleAdjustment::query()->when($branchId,fn($q)=>$q->where('branch_id',$branchId))->when($request->filled('core_user_id'),fn($q)=>$q->where('core_user_id',$request->integer('core_user_id')))->latest()->paginate(30); return view('tenant.operations.schedule-adjustments',compact('items','scope')); }
 

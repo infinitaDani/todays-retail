@@ -2,7 +2,9 @@
     <div class="d-flex gap-2 mb-3">
         <a class="btn btn-light" href="{{ route('operations.schedule') }}">Calendario</a>
         <a class="btn btn-light" href="{{ route('operations.schedule.report') }}">Reporte de jornada</a>
-        <a class="btn btn-light" href="{{ route('operations.schedule.settings') }}">Configuración</a>
+        @if (app(\App\Tenancy\TenantOperationalScope::class)->canManageTenant($scope))
+            <a class="btn btn-light" href="{{ route('operations.schedule.settings') }}">Configuración</a>
+        @endif
     </div>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -21,7 +23,12 @@
         <div class="row g-2">
             <div class="col-md-4">
                 <label class="form-label" for="planner-month">Período</label>
-                <input class="form-control" id="planner-month" name="month" type="month" value="{{ $month->format('Y-m') }}">
+                <select class="form-select" id="planner-month" name="month">
+                    @for ($offset = -12; $offset <= 12; $offset++)
+                        @php($candidate = now()->startOfMonth()->addMonths($offset))
+                        <option value="{{ $candidate->format('Y-m') }}" @selected($candidate->format('Y-m') === $month->format('Y-m'))>{{ $candidate->translatedFormat('F Y') }}</option>
+                    @endfor
+                </select>
             </div>
 
             @if (! $scope['branch_id'])
@@ -66,14 +73,69 @@
         </div>
     @endif
 
+    @if ($schedulePeriod)
+    @if ($viewMode === 'fortnight')
+        <div class="btn-group mb-3">
+            <a class="btn btn-outline-secondary {{ request('fortnight', '1') === '1' ? 'active' : '' }}" href="{{ route('operations.planner', ['month' => $month->format('Y-m'), 'branch_id' => $branchId, 'view' => 'fortnight', 'fortnight' => 1]) }}">Primera quincena</a>
+            <a class="btn btn-outline-secondary {{ request('fortnight') === '2' ? 'active' : '' }}" href="{{ route('operations.planner', ['month' => $month->format('Y-m'), 'branch_id' => $branchId, 'view' => 'fortnight', 'fortnight' => 2]) }}">Segunda quincena</a>
+        </div>
+    @endif
+    @if ($viewMode === 'week')
+        @php($previousWeek = $week->copy()->subWeek())
+        @php($nextWeek = $week->copy()->addWeek())
+        <div class="d-flex gap-2 mb-3">
+            @if ($previousWeek->endOfWeek()->gte($month->copy()->startOfMonth()))
+                <a class="btn btn-outline-secondary" href="{{ route('operations.planner', ['month' => $month->format('Y-m'), 'branch_id' => $branchId, 'view' => 'week', 'week' => $previousWeek->format('Y-m-d')]) }}">← Semana anterior</a>
+            @endif
+            @if ($nextWeek->startOfWeek()->lte($month->copy()->endOfMonth()))
+                <a class="btn btn-outline-secondary" href="{{ route('operations.planner', ['month' => $month->format('Y-m'), 'branch_id' => $branchId, 'view' => 'week', 'week' => $nextWeek->format('Y-m-d')]) }}">Semana siguiente →</a>
+            @endif
+        </div>
+    @endif
+
+    @if ($schedulePeriod->status === 'draft')
+        <form class="mb-3" method="POST" action="{{ route('operations.planner.submit') }}">
+            @csrf
+            <input name="branch_id" type="hidden" value="{{ $branchId }}">
+            <input name="month_key" type="hidden" value="{{ $month->format('Y-m') }}">
+            <button class="btn btn-outline-primary">Enviar a aprobación</button>
+        </form>
+    @elseif ($schedulePeriod->status === 'pending')
+        <div class="alert alert-warning">Pendiente de aprobación. El horario está bloqueado.</div>
+        @if (app(\App\Tenancy\TenantOperationalScope::class)->canManageTenant($scope))
+            <form method="POST" action="{{ route('operations.schedule-periods.review', $schedulePeriod) }}">
+                @csrf
+                @method('PATCH')
+                <input name="status" type="hidden" value="approved">
+                <button class="btn btn-success">Aprobar</button>
+            </form>
+            <form class="mt-2" method="POST" action="{{ route('operations.schedule-periods.review', $schedulePeriod) }}">
+                @csrf
+                @method('PATCH')
+                <input name="status" type="hidden" value="rejected">
+                <input class="form-control" name="review_comment" placeholder="Motivo de rechazo" required>
+                <button class="btn btn-outline-danger mt-2">Rechazar</button>
+            </form>
+        @endif
+    @elseif ($schedulePeriod->status === 'approved')
+        <div class="alert alert-success">Aprobado. Usa Modo ajustes para registrar cambios auditados.</div>
+        <button class="btn btn-outline-primary" type="button" data-adjustment-mode>Hacer ajustes</button>
+    @endif
+
+    <form id="planner-form" method="POST" action="{{ route('operations.planner.save') }}">
+        @csrf
+        <input name="week" type="hidden" value="{{ $month->format('Y-m-d') }}">
+        <input name="branch_id" type="hidden" value="{{ $branchId }}">
+        <input name="view" type="hidden" value="{{ $viewMode }}">
+        <input name="fortnight" type="hidden" value="{{ $fortnight }}">
+        <input name="adjustment_mode" type="hidden" value="0" data-adjustment-mode-input>
+        <div class="d-flex justify-content-end align-items-center gap-2 mb-3">
+            <small class="text-warning d-none" data-unsaved>Cambios sin guardar</small>
+            <button class="btn btn-primary" @disabled($schedulePeriod->status !== 'draft')>Guardar cambios</button>
+        </div>
     @foreach ($weeks as $week)
         <section class="mb-4">
             <h2 class="h6">Semana del {{ $week->format('d/m/Y') }}</h2>
-    <form method="POST" action="{{ route('operations.planner.save') }}">
-        @csrf
-        <input name="week" type="hidden" value="{{ $week->format('Y-m-d') }}">
-        <input name="branch_id" type="hidden" value="{{ $branchId }}">
-
         <div class="tr-card p-0 overflow-auto">
             <table class="table table-custom align-middle mb-0">
                 <thead>
@@ -118,15 +180,25 @@
                                     $absent = $absences->contains(fn ($absence) => $absence->core_user_id === $profile->core_user_id && $absence->starts_at?->toDateString() <= $date && $absence->ends_at?->toDateString() >= $date);
                                 @endphp
 
-                                <td class="{{ substr($date, 0, 7) !== $month->format('Y-m') ? 'text-muted bg-light' : '' }}">
-                                    @if (substr($date, 0, 7) === $month->format('Y-m'))
-                                    <select class="form-select form-select-sm" name="cells[{{ $profile->core_user_id }}:{{ $day }}]" @disabled($absent)>
-                                        <option value="">Pendiente</option>
+                                @php($editableDate = $date >= $activeStart->toDateString() && $date <= $activeEnd->toDateString() && substr($date, 0, 7) === $month->format('Y-m'))
+                                <td class="{{ ! $editableDate ? 'text-muted bg-light' : '' }}">
+                                    @if ($editableDate)
+                                    <select class="form-select form-select-sm" name="cells[{{ $profile->core_user_id }}:{{ $date }}]" data-user="{{ $profile->core_user_id }}" data-day="{{ $day }}" @disabled($absent || ! in_array($schedulePeriod->status, ['draft', 'approved'], true))>
+                                        <option value="">Sin asignar</option>
 
                                         @foreach ($shifts as $shift)
-                                            <option value="{{ $shift->id }}" @selected($assignment?->shift_id === $shift->id)>{{ $shift->is_day_off ? $shift->name : $shift->name.' · '.substr($shift->start_time, 0, 5).'–'.substr($shift->end_time, 0, 5) }}</option>
+                                            @php
+                                                $start = $shift->is_day_off ? null : \Carbon\Carbon::parse($shift->start_time);
+                                                $end = $shift->is_day_off ? null : \Carbon\Carbon::parse($shift->end_time);
+                                                $end = $end && $end->lte($start) ? $end->addDay() : $end;
+                                                $shiftHours = $start ? $start->diffInMinutes($end) / 60 : 0;
+                                            @endphp
+                                            <option value="{{ $shift->id }}" data-hours="{{ $shiftHours }}" data-day-off="{{ $shift->is_day_off ? '1' : '0' }}" @selected($assignment?->shift_id === $shift->id)>{{ $shift->is_day_off ? $shift->name : $shift->name.' · '.substr($shift->start_time, 0, 5).'–'.substr($shift->end_time, 0, 5) }}</option>
                                         @endforeach
                                     </select>
+                                    @if ($schedulePeriod->status === 'approved')
+                                        <input class="form-control form-control-sm mt-1 d-none" data-adjustment-reason name="adjustment_reasons[{{ $profile->core_user_id }}:{{ $date }}]" placeholder="Motivo del ajuste">
+                                    @endif
 
                                     @else
                                         <small>Fuera del período</small>
@@ -138,23 +210,85 @@
                                 </td>
                             @endfor
 
-                            <td class="{{ $hours > $settings->expected_hours_per_week ? 'text-warning' : '' }}">{{ number_format($hours, 1) }} / {{ $settings->expected_hours_per_week }} h</td>
-                            <td class="{{ $offs < $settings->required_days_off_per_week ? 'text-warning' : '' }}">{{ $offs }} / {{ $settings->required_days_off_per_week }}</td>
+                            <td data-hours-total data-expected-hours="{{ $settings->expected_hours_per_week }}">{{ number_format($hours, 1) }} / {{ $settings->expected_hours_per_week }} h</td>
+                            <td data-offs-total data-required-offs="{{ $settings->required_days_off_per_week }}">{{ $offs }} / {{ $settings->required_days_off_per_week }}</td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
         </div>
 
-        <button class="btn btn-primary mt-3">Guardar semana</button>
-    </form>
-
-    <form class="mt-2" method="POST" action="{{ route('operations.planner.copy') }}" onsubmit="return confirm('¿Sobrescribir la planificación destino con la semana anterior?')">
-        @csrf
-        <input name="week" type="hidden" value="{{ $week->format('Y-m-d') }}">
-        <input name="branch_id" type="hidden" value="{{ $branchId }}">
-        <button class="btn btn-outline-secondary">Duplicar semana anterior</button>
+        <button class="btn btn-sm btn-outline-secondary mt-2" type="button" data-copy-week title="Duplicar semana anterior" aria-label="Duplicar semana anterior">Duplicar semana anterior</button>
     </form>
         </section>
     @endforeach
+    </form>
+    @endif
+
+    @push('page-scripts')
+        <script>
+            (() => {
+                const form = document.querySelector('#planner-form');
+                const unsaved = document.querySelector('[data-unsaved]');
+
+                if (!form) return;
+
+                const adjustmentButton = document.querySelector('[data-adjustment-mode]');
+                if (adjustmentButton) {
+                    form.querySelectorAll('select[name^="cells"]').forEach((select) => {
+                        if (!select.closest('td').querySelector('.text-warning')) select.disabled = true;
+                    });
+                    adjustmentButton.addEventListener('click', () => {
+                        form.querySelector('[data-adjustment-mode-input]').value = '1';
+                        form.querySelectorAll('select[name^="cells"]').forEach((select) => {
+                            if (!select.closest('td').querySelector('.text-warning')) select.disabled = false;
+                        });
+                        adjustmentButton.classList.add('d-none');
+                    });
+                }
+
+                const recalculate = (section) => {
+                    let hours = 0;
+                    let offs = 0;
+                    section.querySelectorAll('select[name^="cells"]').forEach((select) => {
+                        const option = select.options[select.selectedIndex];
+                        hours += Number(option?.dataset.hours || 0);
+                        offs += option?.dataset.dayOff === '1' ? 1 : 0;
+                    });
+                    const hoursTarget = section.querySelector('[data-hours-total]');
+                    const offsTarget = section.querySelector('[data-offs-total]');
+                    hoursTarget.textContent = `${hours.toFixed(1)} / ${hoursTarget.dataset.expectedHours} h`;
+                    offsTarget.textContent = `${offs} / ${offsTarget.dataset.requiredOffs}`;
+                };
+
+                form.addEventListener('change', (event) => {
+                    unsaved.classList.remove('d-none');
+                    recalculate(event.target.closest('section'));
+                    const reason = event.target.closest('td')?.querySelector('[data-adjustment-reason]');
+                    if (reason) reason.classList.remove('d-none');
+                });
+
+                document.querySelectorAll('[data-copy-week]').forEach((button) => {
+                    button.addEventListener('click', () => {
+                        const section = button.closest('section');
+                        const previous = section.previousElementSibling;
+                        if (!previous || previous.tagName !== 'SECTION') return;
+                        section.querySelectorAll('select[name^="cells"]').forEach((select) => {
+                            const source = previous.querySelector(`select[data-user="${select.dataset.user}"][data-day="${select.dataset.day}"]`);
+                            if (source && !select.disabled) select.value = source.value;
+                        });
+                        recalculate(section);
+                        unsaved.classList.remove('d-none');
+                    });
+                });
+
+                window.addEventListener('beforeunload', (event) => {
+                    if (!unsaved.classList.contains('d-none')) {
+                        event.preventDefault();
+                        event.returnValue = '';
+                    }
+                });
+            })();
+        </script>
+    @endpush
 </x-layouts.tenant>
