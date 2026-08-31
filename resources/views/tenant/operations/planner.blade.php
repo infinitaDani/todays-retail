@@ -20,7 +20,8 @@
     <form class="tr-card mb-3" method="GET">
         <div class="row g-2">
             <div class="col-md-4">
-                <input class="form-control" name="week" type="date" value="{{ $week->format('Y-m-d') }}">
+                <label class="form-label" for="planner-month">Período</label>
+                <input class="form-control" id="planner-month" name="month" type="month" value="{{ $month->format('Y-m') }}">
             </div>
 
             @if (! $scope['branch_id'])
@@ -36,11 +37,38 @@
             @endif
 
             <div class="col-md-2">
-                <button class="btn btn-primary">Ir a semana</button>
+                <button class="btn btn-primary">Abrir período</button>
             </div>
         </div>
     </form>
 
+    @if (! $schedulePeriod && $branchId)
+        <div class="tr-card mb-3">
+            <p class="mb-3">No existe horario para este período.</p>
+            <form method="POST" action="{{ route('operations.planner.periods.store') }}">
+                @csrf
+                <input name="branch_id" type="hidden" value="{{ $branchId }}">
+                <input name="month_key" type="hidden" value="{{ $month->format('Y-m') }}">
+                <button class="btn btn-primary">Crear horario</button>
+            </form>
+        </div>
+    @endif
+
+    @if ($schedulePeriod && \Carbon\Carbon::createFromFormat('Y-m', $schedulePeriod->month_key)->endOfMonth()->lt(now()->startOfDay()))
+        <div class="tr-card mb-3">
+            <p>Este horario pertenece a un período histórico. Solo puede modificarse mediante Modo ajustes y autorización aprobada.</p>
+            <form method="POST" action="{{ route('operations.schedule-periods.change-requests.store', $schedulePeriod) }}">
+                @csrf
+                <label class="form-label" for="historical-reason">Motivo de la solicitud</label>
+                <textarea class="form-control" id="historical-reason" name="reason" required></textarea>
+                <button class="btn btn-outline-primary mt-2">Solicitar autorización para modificar</button>
+            </form>
+        </div>
+    @endif
+
+    @foreach ($weeks as $week)
+        <section class="mb-4">
+            <h2 class="h6">Semana del {{ $week->format('d/m/Y') }}</h2>
     <form method="POST" action="{{ route('operations.planner.save') }}">
         @csrf
         <input name="week" type="hidden" value="{{ $week->format('Y-m-d') }}">
@@ -90,14 +118,19 @@
                                     $absent = $absences->contains(fn ($absence) => $absence->core_user_id === $profile->core_user_id && $absence->starts_at?->toDateString() <= $date && $absence->ends_at?->toDateString() >= $date);
                                 @endphp
 
-                                <td>
+                                <td class="{{ substr($date, 0, 7) !== $month->format('Y-m') ? 'text-muted bg-light' : '' }}">
+                                    @if (substr($date, 0, 7) === $month->format('Y-m'))
                                     <select class="form-select form-select-sm" name="cells[{{ $profile->core_user_id }}:{{ $day }}]" @disabled($absent)>
                                         <option value="">Pendiente</option>
 
                                         @foreach ($shifts as $shift)
-                                            <option value="{{ $shift->id }}" @selected($assignment?->shift_id === $shift->id)>{{ $shift->name }}</option>
+                                            <option value="{{ $shift->id }}" @selected($assignment?->shift_id === $shift->id)>{{ $shift->is_day_off ? $shift->name : $shift->name.' · '.substr($shift->start_time, 0, 5).'–'.substr($shift->end_time, 0, 5) }}</option>
                                         @endforeach
                                     </select>
+
+                                    @else
+                                        <small>Fuera del período</small>
+                                    @endif
 
                                     @if ($absent)
                                         <small class="text-warning">Ausencia aprobada</small>
@@ -122,4 +155,6 @@
         <input name="branch_id" type="hidden" value="{{ $branchId }}">
         <button class="btn btn-outline-secondary">Duplicar semana anterior</button>
     </form>
+        </section>
+    @endforeach
 </x-layouts.tenant>
