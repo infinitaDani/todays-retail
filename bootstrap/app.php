@@ -9,7 +9,6 @@ use App\Http\Middleware\EnsureScheduleAdministrator;
 use App\Http\Middleware\EnsureTenantManagement;
 use App\Http\Middleware\EnsureTenantOperational;
 use App\Http\Middleware\InitializeTenant;
-use Illuminate\Routing\Middleware\SubstituteBindings;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -29,13 +28,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.operational' => EnsureTenantOperational::class,
             'tenant' => InitializeTenant::class,
         ]);
-		$middleware->prependToPriorityList(
-			before: SubstituteBindings::class,
-			prepend: [
-				EnsureActiveAccount::class,
-				InitializeTenant::class,
-			],
-		);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
