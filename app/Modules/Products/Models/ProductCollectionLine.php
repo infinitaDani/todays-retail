@@ -1,0 +1,3 @@
+<?php
+namespace App\Modules\Products\Models; use App\Modules\TenantModel; use Illuminate\Database\Eloquent\Relations\BelongsTo; use Illuminate\Database\Eloquent\Relations\HasMany;
+class ProductCollectionLine extends TenantModel { protected $fillable=['product_collection_id','name','normalized_name','description','is_active','sort_order']; protected function casts(): array { return ['is_active'=>'boolean']; } public function collection(): BelongsTo { return $this->belongsTo(ProductCollection::class,'product_collection_id'); } public function products(): HasMany { return $this->hasMany(Product::class,'product_collection_line_id'); } }

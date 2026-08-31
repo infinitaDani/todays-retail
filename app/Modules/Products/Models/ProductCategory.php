@@ -1,0 +1,3 @@
+<?php
+namespace App\Modules\Products\Models; use App\Modules\TenantModel; use Illuminate\Database\Eloquent\Relations\BelongsTo; use Illuminate\Database\Eloquent\Relations\HasMany;
+class ProductCategory extends TenantModel { protected $fillable=['parent_id','parent_key','name','normalized_name','slug','description','is_active','sort_order']; protected function casts(): array { return ['is_active'=>'boolean']; } public function parent(): BelongsTo { return $this->belongsTo(self::class,'parent_id'); } public function children(): HasMany { return $this->hasMany(self::class,'parent_id'); } public function products(): HasMany { return $this->hasMany(Product::class,'category_id'); } }

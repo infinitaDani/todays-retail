@@ -1,0 +1,3 @@
+<?php
+namespace App\Modules\Products\Models; use App\Modules\TenantModel; use Illuminate\Database\Eloquent\Relations\BelongsTo; use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+class ProductAttributeValue extends TenantModel { protected $fillable=['product_attribute_id','value','normalized_value','is_active','sort_order']; protected function casts(): array { return ['is_active'=>'boolean']; } public function attribute(): BelongsTo { return $this->belongsTo(ProductAttribute::class,'product_attribute_id'); } public function variants(): BelongsToMany { return $this->belongsToMany(ProductVariant::class,'product_variant_attribute_value','product_attribute_value_id','product_variant_id'); } }

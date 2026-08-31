@@ -7,6 +7,7 @@ use App\Modules\Operations\Models\Assignment;
 use App\Modules\Operations\Models\Branch;
 use App\Modules\Operations\Models\Shift;
 use App\Modules\Operations\Models\StaffProfile;
+use App\Tenancy\TenantOperationalScope;
 use App\Tenancy\AuthorizedCoreUser;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
@@ -39,9 +40,9 @@ class OperationsController extends Controller
         $scope = $request->attributes->get('tenantOperationalScope'); $account = $request->attributes->get('tenantAccount'); $branchId = $this->filteredBranchId($data['branch_id'] ?? null, $scope);
         if (! empty($data['core_user_id'])) $this->ensureTargetUser($account, (int) $data['core_user_id'], $branchId, $scope);
         if (! empty($data['shift_id']) && ! Shift::query()->whereKey($data['shift_id'])->exists()) abort(422, 'El turno seleccionado no existe.');
-        $assignments = Assignment::query()->with(['branch', 'shift'])->where('date', '>=', $start->toDateString())->where('date', '<', $end->toDateString())->when($branchId, fn (Builder $query) => $query->where('branch_id', $branchId))->when($data['core_user_id'] ?? null, fn (Builder $query, $userId) => $query->where('core_user_id', $userId))->when($data['shift_id'] ?? null, fn (Builder $query, $shiftId) => $query->where('shift_id', $shiftId))->get();
+        $assignments = Assignment::query()->with(['branch', 'shift.checklists.items.task.knowledgeArticles.versions'])->where('date', '>=', $start->toDateString())->where('date', '<', $end->toDateString())->when($branchId, fn (Builder $query) => $query->where('branch_id', $branchId))->when($data['core_user_id'] ?? null, fn (Builder $query, $userId) => $query->where('core_user_id', $userId))->when($data['shift_id'] ?? null, fn (Builder $query, $shiftId) => $query->where('shift_id', $shiftId))->get();
         $users = $account->users()->whereIn('users.id', $assignments->pluck('core_user_id')->unique())->get()->keyBy('id');
-        return response()->json($assignments->map(function (Assignment $assignment) use ($users): array {
+        return response()->json($assignments->map(function (Assignment $assignment) use ($users, $scope): array {
             $user = $users->get($assignment->core_user_id);
             $shift = $assignment->shift;
 
@@ -59,6 +60,7 @@ class OperationsController extends Controller
                     'shift_id' => $assignment->shift_id,
                     'shift_name' => $shift->name,
                     'shift_hours' => substr((string) $shift->start_time, 0, 5).' → '.substr((string) $shift->end_time, 0, 5),
+                    'has_support_material' => $shift->checklists->flatMap(fn ($checklist) => $checklist->items)->contains(fn ($item) => $item->task->knowledgeArticles->contains(fn ($article) => $article->status === 'published' && ($scope['is_account_administrator'] ?? false || $scope['role'] === TenantOperationalScope::MANAGEMENT || $article->versions->contains(fn ($version) => $version->status === 'published' && (in_array('all',$version->audience ?: ['all'],true) || in_array($scope['role'],$version->audience ?: ['all'],true))))),
                 ],
             ];
         }));

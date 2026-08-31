@@ -1,0 +1,3 @@
+<?php
+use Illuminate\Database\Migrations\Migration; use Illuminate\Database\Schema\Blueprint; use Illuminate\Support\Facades\Schema;
+return new class extends Migration { public function up(): void { Schema::connection('tenant')->create('knowledge_article_task',function(Blueprint $t){$t->foreignId('task_id')->constrained('tasks')->cascadeOnDelete();$t->foreignId('knowledge_article_id')->constrained('knowledge_articles')->cascadeOnDelete();$t->primary(['task_id','knowledge_article_id']);}); } public function down():void { Schema::connection('tenant')->dropIfExists('knowledge_article_task'); } };

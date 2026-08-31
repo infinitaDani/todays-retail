@@ -36,11 +36,13 @@ class MyTasksController extends Controller
             ->get();
         foreach ($assignments as $assignment) { $daily->materialize($assignment); }
 
-        $tasks = TaskExecution::query()->with(['checklistExecution', 'checklistItem.task'])->whereDate('scheduled_date', $date)
+        $tasks = TaskExecution::query()->with(['checklistExecution', 'checklistItem.task.knowledgeArticles.versions'])->whereDate('scheduled_date', $date)
             ->when($branchId, fn (Builder $query) => $query->where('branch_id', $branchId))
             ->when($userId, fn (Builder $query) => $query->where('core_user_id', $userId))
             ->orderBy('scheduled_start')->orderBy('scheduled_end')->get();
         $users = $this->availableUsers($account, $scope, $branchId)->keyBy('id');
+        $role = $scope['role']; $canPreviewAll = ($scope['is_account_administrator'] ?? false) || $role === TenantOperationalScope::MANAGEMENT;
+        $tasks->each(function (TaskExecution $task) use ($role, $canPreviewAll): void { $articles = $task->checklistItem?->task?->knowledgeArticles ?? collect(); $task->setRelation('supportArticles', $articles->filter(function ($article) use ($role, $canPreviewAll) { $version=$article->versions->firstWhere('status','published'); return $article->status==='published' && $version && ($canPreviewAll || in_array('all',$version->audience?:['all'],true) || in_array($role,$version->audience?:['all'],true)); })); });
         $timeline = $this->timeline($tasks, $assignments);
         $performance = $this->performance($tasks, now());
 

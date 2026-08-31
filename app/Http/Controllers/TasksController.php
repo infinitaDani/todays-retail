@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreChecklistRequest;
 use App\Http\Requests\StoreTaskRequest;
 use App\Modules\Operations\Models\Shift;
+use App\Modules\Knowledge\Models\KnowledgeArticle;
 use App\Modules\Tasks\Models\Checklist;
 use App\Modules\Tasks\Models\ChecklistItem;
 use App\Modules\Tasks\Models\Task;
@@ -27,11 +28,11 @@ class TasksController extends Controller
         return view('tenant.tasks.tasks', ['tasks' => $query->orderBy('name')->paginate(10)->withQueryString(), 'summary' => $this->taskSummary()]);
     }
 
-    public function createTask(): View { return view('tenant.tasks.create'); }
-    public function storeTask(StoreTaskRequest $request): RedirectResponse { $task = Task::create($request->validated()); return redirect()->route('tasks.show', $task)->with('success', 'Tarea creada correctamente.'); }
-    public function showTask(Task $task): View { return view('tenant.tasks.show', ['task' => $task, 'inUse' => $this->taskHasHistoryOrUse($task)]); }
-    public function editTask(Task $task): View { return view('tenant.tasks.edit', compact('task')); }
-    public function updateTask(StoreTaskRequest $request, Task $task): RedirectResponse { $task->update($request->validated()); return redirect()->route('tasks.show', $task)->with('success', 'Tarea actualizada correctamente.'); }
+    public function createTask(): View { return view('tenant.tasks.create',['knowledgeArticles'=>$this->selectableKnowledge()]); }
+    public function storeTask(StoreTaskRequest $request): RedirectResponse { $data=$request->validated();$task = DB::connection('tenant')->transaction(function()use($data){$ids=$data['knowledge_article_ids']??[];unset($data['knowledge_article_ids']);$task=Task::create($data);$task->knowledgeArticles()->sync($ids);return $task;}); return redirect()->route('tasks.show', $task)->with('success', 'Tarea creada correctamente.'); }
+    public function showTask(Task $task): View { $task->load('knowledgeArticles.categories');return view('tenant.tasks.show', ['task' => $task, 'inUse' => $this->taskHasHistoryOrUse($task)]); }
+    public function editTask(Task $task): View { $task->load('knowledgeArticles');return view('tenant.tasks.edit', compact('task')+['knowledgeArticles'=>$this->selectableKnowledge()]); }
+    public function updateTask(StoreTaskRequest $request, Task $task): RedirectResponse { $data=$request->validated();DB::connection('tenant')->transaction(function()use($task,$data){$ids=$data['knowledge_article_ids']??[];unset($data['knowledge_article_ids']);$task->update($data);$task->knowledgeArticles()->sync($ids);}); return redirect()->route('tasks.show', $task)->with('success', 'Tarea actualizada correctamente.'); }
     public function toggleTask(Task $task): RedirectResponse { $task->update(['status' => $task->status === 'active' ? 'inactive' : 'active']); return back()->with('success', 'Estado de la tarea actualizado.'); }
 
     public function destroyTask(Task $task): RedirectResponse
@@ -138,6 +139,7 @@ class TasksController extends Controller
 
     private function taskSummary(): array { return ['total' => Task::count(), 'active' => Task::where('status', 'active')->count(), 'inactive' => Task::where('status', 'inactive')->count(), 'in_checklists' => Task::has('checklistItems')->count()]; }
     private function activeShifts() { return Shift::query()->where('status', 'active')->orderBy('name')->get(); }
+    private function selectableKnowledge() { return KnowledgeArticle::query()->where('status','published')->with('categories')->orderBy('title')->get(); }
     private function checklistFormData(): array { return ['shifts' => $this->activeShifts(), 'tasks' => Task::query()->orderBy('name')->get()]; }
     private function taskHasHistoryOrUse(Task $task): bool { return $task->checklistItems()->exists() || TaskExecution::query()->whereHas('checklistItem', fn (Builder $items) => $items->where('task_id', $task->id))->exists(); }
     private function checklistHasHistoryOrUse(Checklist $checklist): bool { return $checklist->executions()->exists() || TaskExecution::query()->whereHas('checklistExecution', fn (Builder $executions) => $executions->where('checklist_id', $checklist->id))->exists(); }

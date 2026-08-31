@@ -513,7 +513,26 @@ without modifying the original `knowledge_articles.category` value.
 
 ---
 
-## 14. Merchandising Module
+## 14. Products Module
+
+Products are tenant-owned and use flexible variants: `products` is the parent
+catalog record, while each SKU lives in `product_variants`. Attributes such as
+Size and Color are tenant-configured `product_attributes`; variants receive one
+or more values through `product_variant_attribute_value`. They are not rigid
+product columns, so a future Contífico importer can apply tenant-specific SKU
+inference rules without changing the catalog schema.
+
+Categories support only a main category and one child category. Collections and
+collection lines are optional commercial structures controlled by the tenant's
+`product_settings`. All product classification data may remain null to support
+incomplete external source data and later bulk enrichment.
+
+Tasks may reference zero or more Knowledge articles through the tenant pivot
+`knowledge_article_task`. The association targets the article, never a frozen
+version: collaborators always open the currently published, audience-authorized
+version through Knowledge Center and therefore use the same version tracking.
+
+## 15. Merchandising Module
 
 Location:
 

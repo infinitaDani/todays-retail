@@ -14,6 +14,7 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\TasksController;
 use App\Http\Controllers\TenantTeamController;
 use App\Http\Controllers\MyTasksController;
+use App\Http\Controllers\ProductsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -56,6 +57,11 @@ Route::prefix('core-admin')->as('admin.')->middleware(['auth', 'core.admin'])->g
 
 Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
     Route::middleware('tenant.management')->group(function () {
+        Route::get('products', [ProductsController::class, 'index'])->name('products.index'); Route::get('products/create', [ProductsController::class, 'create'])->name('products.create'); Route::post('products', [ProductsController::class, 'store'])->name('products.store'); Route::post('products/bulk', [ProductsController::class, 'bulk'])->name('products.bulk');
+        Route::get('products/settings', [ProductsController::class, 'settings'])->name('products.settings'); Route::put('products/settings', [ProductsController::class, 'updateSettings'])->name('products.settings.update');
+        Route::get('products/categories', [ProductsController::class, 'categories'])->name('products.categories'); Route::get('products/categories/create', [ProductsController::class, 'createCategory'])->name('products.categories.create'); Route::post('products/categories', [ProductsController::class, 'storeCategory'])->name('products.categories.store'); Route::get('products/categories/{category}/edit', [ProductsController::class, 'editCategory'])->name('products.categories.edit'); Route::put('products/categories/{category}', [ProductsController::class, 'updateCategory'])->name('products.categories.update'); Route::patch('products/categories/{category}/status', [ProductsController::class, 'toggleCategory'])->name('products.categories.status');
+        Route::get('products/collections', [ProductsController::class, 'collections'])->name('products.collections'); Route::get('products/collections/create', [ProductsController::class, 'createCollection'])->name('products.collections.create'); Route::post('products/collections', [ProductsController::class, 'storeCollection'])->name('products.collections.store'); Route::get('products/collections/{collection}', [ProductsController::class, 'showCollection'])->name('products.collections.show'); Route::get('products/collections/{collection}/edit', [ProductsController::class, 'editCollection'])->name('products.collections.edit'); Route::put('products/collections/{collection}', [ProductsController::class, 'updateCollection'])->name('products.collections.update'); Route::patch('products/collections/{collection}/status', [ProductsController::class, 'toggleCollection'])->name('products.collections.status'); Route::post('products/collections/{collection}/lines', [ProductsController::class, 'storeLine'])->name('products.collections.lines.store'); Route::put('products/collections/{collection}/lines/{line}', [ProductsController::class, 'updateLine'])->name('products.collections.lines.update');
+        Route::get('products/{product}', [ProductsController::class, 'show'])->name('products.show'); Route::get('products/{product}/edit', [ProductsController::class, 'edit'])->name('products.edit'); Route::put('products/{product}', [ProductsController::class, 'update'])->name('products.update'); Route::patch('products/{product}/status', [ProductsController::class, 'toggle'])->name('products.status');
         Route::get('operations/branches', [BranchController::class, 'index'])->name('operations.branches');
         Route::get('operations/branches/create', [BranchController::class, 'create'])->name('operations.branches.create');
         Route::post('operations/branches', [BranchController::class, 'store'])->name('operations.branches.store');

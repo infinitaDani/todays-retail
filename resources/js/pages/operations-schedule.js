@@ -3,6 +3,7 @@ import { Calendar } from '@fullcalendar/core';
 import bootstrap5Plugin from '@fullcalendar/bootstrap5';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import { BookOpen } from 'lucide';
 
 document.addEventListener('DOMContentLoaded', () => {
     const root = document.querySelector('#schedule-calendar');
@@ -56,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
             eventBranch.textContent = `⌖ ${info.event.extendedProps.branch_name}`;
             eventHours.textContent = `◷ ${info.event.extendedProps.shift_hours}`;
             eventShift.textContent = info.event.extendedProps.shift_name;
+            if (info.event.extendedProps.has_support_material) { const material = document.createElement('span'); material.className = 'ms-1'; material.title = 'Tiene material de apoyo'; material.innerHTML = BookOpen.toSvg({ width: 14, height: 14, 'stroke-width': 2 }); eventShift.append(material); }
             container.append(eventTitle, eventBranch, eventHours, eventShift);
             return { domNodes: [container] };
         },

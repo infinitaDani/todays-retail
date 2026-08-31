@@ -15,6 +15,8 @@ class StoreTaskRequest extends FormRequest
             'name' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string'],
             'status' => ['required', Rule::in(['active', 'inactive'])],
+            'knowledge_article_ids' => ['nullable', 'array'],
+            'knowledge_article_ids.*' => ['integer', 'exists:tenant.knowledge_articles,id'],
         ];
     }
 }
