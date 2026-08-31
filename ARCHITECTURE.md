@@ -391,6 +391,16 @@ codes; it cannot create, edit, delete, or assign any other Core role. A future
 need for specific multi-branch access will be handled through a new tenant
 migration, not by changing these rules silently.
 
+### Account Administrator
+
+The existing Core role code `admin` on an `account_user` membership identifies
+an Account Administrator for that specific account. It is not a fourth tenant
+operational role and must not be assigned from Tenant Team. An Account
+Administrator has full administrative access only while that account is the
+validated active account, but is not automatically `management` and does not
+receive a `staff_profile`, branch, shift, assignment, or personal operational
+work. This permission is resolved centrally from Core `account_user` data.
+
 ---
 
 ## 12. Tasks Module
@@ -474,6 +484,32 @@ Knowledge Center uses `knowledge_articles`, `knowledge_assignments`, and
 global `core_user_id` without a cross-database foreign key. Tracking is created
 and updated by article interaction (opened, completed, confirmed), not through
 a manual tracking CRUD.
+
+### Knowledge categories, versions and readings
+
+Categories are tenant-owned records in `knowledge_categories`; an article may
+have many categories through `knowledge_article_category`. Published content is
+immutable: edits to a published article create or update a draft in
+`knowledge_article_versions`, while the previous published version is archived
+and retained when the draft is published. The legacy article fields remain as a
+compatibility snapshot of its current publication.
+
+`knowledge_version_readings` tracks a global `core_user_id` against one
+published version, including first/last open, indicative active seconds and an
+idempotent reading confirmation. A new published version deliberately has no
+reading rows, so it is pending again. Audience is stored on each version using
+the operational role codes `all`, `management`, `store_admin` and `advisor`.
+Account Administrators and Management have backoffice access; Store Admin and
+Advisor access only the published, audience-filtered collaborator experience.
+Publishing dispatches `KnowledgeArticlePublished`, reserved for future in-app,
+browser or email notifications; it does not send notifications itself.
+
+Historical `knowledge_assignments` and `knowledge_trackings` remain immutable
+legacy records. Official per-version reading tracking begins with Knowledge 2.0;
+the incremental migration intentionally does not infer or fabricate readings,
+confirmations, or active time from the legacy schema. Legacy free-text article
+categories are normalized into tenant categories and the article/category pivot
+without modifying the original `knowledge_articles.category` value.
 
 ---
 

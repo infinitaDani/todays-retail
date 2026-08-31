@@ -25,6 +25,8 @@ class MyTasksController extends Controller
         $data = $request->validate(['date' => ['nullable', 'date'], 'branch_id' => ['nullable', 'integer'], 'core_user_id' => ['nullable', 'integer']]);
         $scope = $request->attributes->get('tenantOperationalScope');
         $account = $request->attributes->get('tenantAccount');
+        $operationalProfile = ($scope['is_account_administrator'] ?? false) ? StaffProfile::query()->where('core_user_id', $request->user()->id)->where('status', 'active')->first() : null;
+        $supervisionMode = ($scope['is_account_administrator'] ?? false) && ! $operationalProfile;
         $date = Carbon::parse($data['date'] ?? now())->toDateString();
         [$branchId, $userId] = $this->resolveFilters($data, $scope, $account, $request->user()->id);
 
@@ -44,14 +46,22 @@ class MyTasksController extends Controller
 
         return view('tenant.operations.my-tasks', [
             'date' => $date, 'tasks' => $tasks, 'scope' => $scope, 'branchId' => $branchId, 'userId' => $userId,
-            'branches' => $scope['role'] === TenantOperationalScope::MANAGEMENT ? Branch::query()->where('status', 'active')->orderBy('name')->get() : collect(),
+            'branches' => (($scope['is_account_administrator'] ?? false) || $scope['role'] === TenantOperationalScope::MANAGEMENT) ? Branch::query()->where('status', 'active')->orderBy('name')->get() : collect(),
             'users' => $users, 'timeline' => $timeline, 'performance' => $performance,
+            'supervisionMode' => $supervisionMode,
+            'canCompleteOwnTasks' => ! ($scope['is_account_administrator'] ?? false) || (bool) $operationalProfile,
         ]);
     }
 
     public function complete(Request $request, TaskExecution $execution): RedirectResponse
     {
         $scope = $request->attributes->get('tenantOperationalScope');
+        if (($scope['is_account_administrator'] ?? false)) {
+            $profile = StaffProfile::query()->where('core_user_id', $request->user()->id)->where('status', 'active')->first();
+            if (! $profile || $execution->core_user_id !== $request->user()->id) {
+                throw new AuthorizationException('Tu cuenta solo tiene acceso de supervisión; no puedes completar tareas operativas.');
+            }
+        }
         if ($scope['role'] === TenantOperationalScope::ADVISOR && $execution->core_user_id !== $request->user()->id) {
             throw new AuthorizationException('No puedes completar tareas de otro colaborador.');
         }

@@ -18,8 +18,8 @@ class EnsureTenantManagement
     {
         $scope = $this->scopes->for($request->user(), $request->attributes->get('tenantAccount'));
 
-        if ($scope['role'] !== TenantOperationalScope::MANAGEMENT) {
-            throw new AuthorizationException('Solo Management puede administrar el equipo.');
+        if (! $this->scopes->canManageTenant($scope)) {
+            throw new AuthorizationException('Solo Account Administrator o Management pueden administrar esta cuenta.');
         }
 
         $request->attributes->set('tenantOperationalScope', $scope);

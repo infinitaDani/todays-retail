@@ -90,6 +90,12 @@ Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
         Route::delete('tasks/checklists/{checklist}', [TasksController::class, 'destroyChecklist'])->name('checklists.destroy');
         Route::patch('tasks/checklists/{checklist}/items/order', [TasksController::class, 'reorderChecklistItems'])->name('checklists.items.order');
         Route::get('knowledge/articles', [KnowledgeController::class, 'articles'])->name('knowledge.articles');
+        Route::get('knowledge/categories', [KnowledgeController::class, 'categories'])->name('knowledge.categories');
+        Route::get('knowledge/categories/create', [KnowledgeController::class, 'createCategory'])->name('knowledge.categories.create');
+        Route::post('knowledge/categories', [KnowledgeController::class, 'storeCategory'])->name('knowledge.categories.store');
+        Route::get('knowledge/categories/{category}/edit', [KnowledgeController::class, 'editCategory'])->name('knowledge.categories.edit');
+        Route::put('knowledge/categories/{category}', [KnowledgeController::class, 'updateCategory'])->name('knowledge.categories.update');
+        Route::delete('knowledge/categories/{category}', [KnowledgeController::class, 'destroyCategory'])->name('knowledge.categories.destroy');
         Route::get('knowledge/articles/create', [KnowledgeController::class, 'create'])->name('knowledge.articles.create');
         Route::post('knowledge/articles', [KnowledgeController::class, 'store'])->name('knowledge.articles.store');
         Route::get('knowledge/articles/{article}', [KnowledgeController::class, 'show'])->name('knowledge.articles.show');
@@ -113,6 +119,10 @@ Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
     Route::middleware('tenant.operational')->group(function () {
         Route::get('operations/my-tasks', [MyTasksController::class, 'index'])->name('operations.my-tasks');
         Route::post('operations/my-tasks/{execution}/complete', [MyTasksController::class, 'complete'])->name('operations.my-tasks.complete');
+        Route::get('knowledge', [KnowledgeController::class, 'center'])->name('knowledge.center');
+        Route::get('knowledge/read/{article}', [KnowledgeController::class, 'read'])->name('knowledge.read');
+        Route::post('knowledge/versions/{version}/heartbeat', [KnowledgeController::class, 'heartbeat'])->middleware('throttle:6,1')->name('knowledge.versions.heartbeat');
+        Route::post('knowledge/versions/{version}/confirm', [KnowledgeController::class, 'confirmVersion'])->name('knowledge.versions.confirm');
     });
     Route::middleware('tenant.management')->group(function () {
         Route::get('team', [TenantTeamController::class, 'index'])->name('team.index');

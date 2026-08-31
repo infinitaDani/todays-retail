@@ -1,6 +1,10 @@
 @props(['title' => null, 'subtitle' => null])
 @php($activeAccount = request()->attributes->get('tenantAccount') ?? ($account ?? null))
-@php($tenantRole = $activeAccount && auth()->check() ? auth()->user()->memberships()->where('account_id', $activeAccount->id)->with('role')->first()?->role?->code : null)
+@php($tenantPermissions = $activeAccount && auth()->check() ? app(\App\Tenancy\TenantAccountAccess::class)->navigation(auth()->user(), $activeAccount) : ['role' => null, 'account_administrator' => false, 'can_manage' => false, 'can_administer_schedule' => false, 'can_operate' => false])
+@php($tenantRole = $tenantPermissions['role'])
+@php($canManageTenant = $tenantPermissions['can_manage'])
+@php($canAdministerSchedule = $tenantPermissions['can_administer_schedule'])
+@php($canOperateTenant = $tenantPermissions['can_operate'])
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-bs-theme="light">
     <head>
@@ -28,17 +32,17 @@
                     <p class="sidebar-heading">Principal</p>
                     <ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a></li></ul>
                     <p class="sidebar-heading">Equipo</p>
-                    @if ($tenantRole === 'management')<ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('team.*') ? 'active' : '' }}" href="{{ route('team.index') }}"><i data-lucide="users"></i><span>Colaboradores</span></a></li></ul>@endif
+                    @if ($canManageTenant)<ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('team.*') ? 'active' : '' }}" href="{{ route('team.index') }}"><i data-lucide="users"></i><span>Colaboradores</span></a></li></ul>@endif
                     <p class="sidebar-heading">Operations</p>
-                    @if ($tenantRole === 'management')<ul class="side-nav">
+                    @if ($canManageTenant)<ul class="side-nav">
                         <li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('operations.branches') ? 'active' : '' }}" href="{{ route('operations.branches') }}"><i data-lucide="store"></i><span>Sucursales</span></a></li>
                         <li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('operations.shifts') ? 'active' : '' }}" href="{{ route('operations.shifts') }}"><i data-lucide="clock-3"></i><span>Turnos</span></a></li>
                     </ul>@endif
-                    @if (in_array($tenantRole, ['management', 'store_admin', 'advisor'], true))<ul class="side-nav"><li class="side-nav-item"><span class="side-nav-link"><i data-lucide="calendar-days"></i><span>Horarios</span></span><ul class="side-nav-sub">@if (in_array($tenantRole, ['management', 'store_admin'], true))<li><a class="side-nav-link {{ request()->routeIs('operations.schedule') ? 'active' : '' }}" href="{{ route('operations.schedule') }}"><span>Horario mensual</span></a></li>@endif<li><a class="side-nav-link {{ request()->routeIs('operations.my-tasks') ? 'active' : '' }}" href="{{ route('operations.my-tasks') }}"><span>Mis tareas</span></a></li></ul></li></ul>@endif
+                    @if ($canOperateTenant)<ul class="side-nav"><li class="side-nav-item"><span class="side-nav-link"><i data-lucide="calendar-days"></i><span>Horarios</span></span><ul class="side-nav-sub">@if ($canAdministerSchedule)<li><a class="side-nav-link {{ request()->routeIs('operations.schedule') ? 'active' : '' }}" href="{{ route('operations.schedule') }}"><span>Horario mensual</span></a></li>@endif<li><a class="side-nav-link {{ request()->routeIs('operations.my-tasks') ? 'active' : '' }}" href="{{ route('operations.my-tasks') }}"><span>Mis tareas</span></a></li></ul></li></ul>@endif
                     <p class="sidebar-heading">Tasks</p>
-                    @if ($tenantRole === 'management')<ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}" href="{{ route('tasks.index') }}"><i data-lucide="list-todo"></i><span>Tareas</span></a></li><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('checklists.*') ? 'active' : '' }}" href="{{ route('checklists.index') }}"><i data-lucide="clipboard-check"></i><span>Checklists</span></a></li></ul>@endif
+                    @if ($canManageTenant)<ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}" href="{{ route('tasks.index') }}"><i data-lucide="list-todo"></i><span>Tareas</span></a></li><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('checklists.*') ? 'active' : '' }}" href="{{ route('checklists.index') }}"><i data-lucide="clipboard-check"></i><span>Checklists</span></a></li></ul>@endif
                     <p class="sidebar-heading">Knowledge</p>
-                    @if ($tenantRole === 'management')<ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('knowledge.*') ? 'active' : '' }}" href="{{ route('knowledge.articles') }}"><i data-lucide="book-open"></i><span>Knowledge Center</span></a></li></ul>@endif
+                    @if ($canOperateTenant)<ul class="side-nav"><li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('knowledge.center','knowledge.read') ? 'active' : '' }}" href="{{ route('knowledge.center') }}"><i data-lucide="book-open"></i><span>Knowledge Center</span></a></li>@if($canManageTenant)<li class="side-nav-item"><a class="side-nav-link {{ request()->routeIs('knowledge.articles*','knowledge.categories*') ? 'active' : '' }}" href="{{ route('knowledge.articles') }}"><i data-lucide="settings-2"></i><span>Administrar Knowledge</span></a></li>@endif</ul>@endif
                 </div>
             </aside>
 
