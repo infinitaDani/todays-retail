@@ -14,9 +14,26 @@ return new class extends Migration
             return;
         }
 
-        $shifts = DB::connection('tenant')->table('shifts');
-        if (! $shifts->where('is_day_off', true)->exists()) {
-            $shifts->insert([
+        DB::connection('tenant')->statement(
+            'ALTER TABLE shifts MODIFY start_time TIME NULL'
+        );
+
+        DB::connection('tenant')->statement(
+            'ALTER TABLE shifts MODIFY end_time TIME NULL'
+        );
+
+        $dayOffExists = DB::connection('tenant')
+            ->table('shifts')
+            ->where('is_day_off', true)
+            ->exists();
+
+        if ($dayOffExists) {
+            return;
+        }
+
+        DB::connection('tenant')
+            ->table('shifts')
+            ->insert([
                 'name' => 'Día libre',
                 'start_time' => null,
                 'end_time' => null,
@@ -25,11 +42,11 @@ return new class extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-        }
     }
 
     public function down(): void
     {
-        // Never remove a tenant's configured operational shift.
+        // No revertimos start_time/end_time a NOT NULL porque los turnos
+        // is_day_off utilizan legítimamente valores NULL.
     }
 };
