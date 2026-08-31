@@ -6,6 +6,11 @@
             @method('PATCH')
             <button class="btn btn-outline-warning">{{ $product->is_active ? 'Desactivar' : 'Activar' }}</button>
         </form>
+        <form method="POST" action="{{ route('products.destroy', $product) }}" onsubmit="return confirm('¿Eliminar este producto y sus variantes? Esta acción no se puede deshacer.')">
+            @csrf
+            @method('DELETE')
+            <button class="btn btn-outline-danger">Eliminar</button>
+        </form>
     </div>
 
     <div class="tr-card mb-3">

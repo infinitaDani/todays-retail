@@ -59,20 +59,13 @@
                                 $shift = $assignment?->shift;
                             @endphp
 
-                            @if ($shift && ! $shift->is_day_off)
-                                @php
-                                    $start = \Carbon\Carbon::parse($shift->start_time);
-                                    $end = \Carbon\Carbon::parse($shift->end_time);
-                                    if ($end->lte($start)) {
-                                        $end->addDay();
-                                    }
-                                    $hours += $start->diffInMinutes($end) / 60;
-                                @endphp
-                            @endif
-
-                            @if ($shift?->is_day_off)
-                                @php($offs++)
-                            @endif
+                            @php
+                                $start = $shift && ! $shift->is_day_off ? \Carbon\Carbon::parse($shift->start_time) : null;
+                                $end = $shift && ! $shift->is_day_off ? \Carbon\Carbon::parse($shift->end_time) : null;
+                                $end = $end && $end->lte($start) ? $end->addDay() : $end;
+                                $hours += $start ? $start->diffInMinutes($end) / 60 : 0;
+                                $offs += $shift?->is_day_off ? 1 : 0;
+                            @endphp
                         @endfor
 
                         <tr>

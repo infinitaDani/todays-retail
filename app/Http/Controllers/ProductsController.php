@@ -12,6 +12,7 @@ class ProductsController extends Controller {
     public function edit(Product $product): View { return view('tenant.products.form',$this->formData(['product'=>$product->load('variants.attributeValues')])); }
     public function update(StoreProductRequest $r,Product $product): RedirectResponse { DB::connection('tenant')->transaction(fn()=> $this->saveProduct($product,$r->validated())); return redirect()->route('products.show',$product)->with('success','Producto actualizado.'); }
     public function toggle(Product $product): RedirectResponse { $product->update(['is_active'=>!$product->is_active]); return back()->with('success','Estado actualizado.'); }
+    public function destroy(Product $product): RedirectResponse { DB::connection('tenant')->transaction(function () use ($product): void { $product->variants()->each(function ($variant): void { $variant->attributeValues()->detach(); $variant->delete(); }); $product->delete(); }); return redirect()->route('products.index')->with('success','Producto eliminado.'); }
     public function bulk(Request $r): RedirectResponse { $data=$r->validate(['product_ids'=>['required','array','min:1'],'product_ids.*'=>['integer','exists:tenant.products,id'],'category_id'=>['nullable','integer','exists:tenant.product_categories,id'],'product_collection_id'=>['nullable','integer','exists:tenant.product_collections,id'],'product_collection_line_id'=>['nullable','integer','exists:tenant.product_collection_lines,id'],'is_active'=>['nullable','boolean']]); if($data['product_collection_line_id']??null) $this->ensureLine((int)$data['product_collection_line_id'],isset($data['product_collection_id'])?(int)$data['product_collection_id']:null,$data['product_ids']); $updates=array_filter(['category_id'=>$data['category_id']??null,'product_collection_id'=>$data['product_collection_id']??null,'product_collection_line_id'=>$data['product_collection_line_id']??null],fn($v)=>$v!==null); if($r->has('is_active'))$updates['is_active']=$r->boolean('is_active'); if(!$updates) throw ValidationException::withMessages(['bulk'=>'Selecciona al menos un cambio.']); Product::whereIn('id',$data['product_ids'])->update($updates); return back()->with('success','Productos actualizados masivamente.'); }
     public function categories(): View { return view('tenant.products.categories',['categories'=>ProductCategory::with('parent')->withCount('products')->orderBy('parent_key')->orderBy('name')->paginate(20)]); }
     public function createCategory(): View { return view('tenant.products.category-form',['parents'=>ProductCategory::whereNull('parent_id')->orderBy('name')->get()]); }
@@ -35,7 +36,6 @@ class ProductsController extends Controller {
             'manages_collections' => ['nullable', 'boolean'],
             'manages_collection_lines' => ['nullable', 'boolean'],
             'manages_taxes' => ['nullable', 'boolean'],
-            'tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'vat_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'ice_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'manages_multiple_prices' => ['nullable', 'boolean'],
@@ -51,7 +51,6 @@ class ProductsController extends Controller {
             'manages_collections' => $collections,
             'manages_collection_lines' => $collections && $request->boolean('manages_collection_lines'),
             'manages_taxes' => $request->boolean('manages_taxes'),
-            'tax_percent' => $data['tax_percent'] ?? null,
             'vat_percent' => $data['vat_percent'] ?? null,
             'ice_percent' => $data['ice_percent'] ?? null,
             'manages_multiple_prices' => $request->boolean('manages_multiple_prices'),

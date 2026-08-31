@@ -42,9 +42,8 @@
                         <label class="form-check-label" for="taxes">Gestiona impuestos</label>
                     </div>
                 </div>
-                <div class="col-md-3"><label class="form-label">% impuestos</label><input class="form-control" name="tax_percent" type="number" step="0.0001" value="{{ old('tax_percent', $settings->tax_percent) }}"></div>
-                <div class="col-md-3"><label class="form-label">% IVA</label><input class="form-control" name="vat_percent" type="number" step="0.0001" value="{{ old('vat_percent', $settings->vat_percent) }}"></div>
-                <div class="col-md-3"><label class="form-label">% ICE</label><input class="form-control" name="ice_percent" type="number" step="0.0001" value="{{ old('ice_percent', $settings->ice_percent) }}"></div>
+                <div class="col-md-4"><label class="form-label">% IVA</label><input class="form-control" name="vat_percent" type="number" step="0.0001" value="{{ old('vat_percent', $settings->vat_percent) }}"></div>
+                <div class="col-md-4"><label class="form-label">% ICE</label><input class="form-control" name="ice_percent" type="number" step="0.0001" value="{{ old('ice_percent', $settings->ice_percent) }}"></div>
             </div>
 
             <hr class="my-4">
