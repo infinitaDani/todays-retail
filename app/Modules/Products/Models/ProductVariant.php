@@ -14,6 +14,7 @@ class ProductVariant extends TenantModel
         'is_taxable', 'tax_rate', 'is_inventory_item', 'pvp1', 'pvp1_with_tax',
         'pvp2', 'pvp2_with_tax', 'pvp3', 'pvp3_with_tax', 'distribution_price',
         'distribution_price_with_tax', 'is_active',
+        'ice_rate',
     ];
 
     protected function casts(): array
@@ -24,6 +25,7 @@ class ProductVariant extends TenantModel
             'sale_price' => 'decimal:4',
             'purchase_price' => 'decimal:4',
             'tax_rate' => 'decimal:4',
+            'ice_rate' => 'decimal:4',
             'pvp1' => 'decimal:4',
             'pvp1_with_tax' => 'decimal:4',
             'pvp2' => 'decimal:4',

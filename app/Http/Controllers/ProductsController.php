@@ -5,7 +5,59 @@ use App\Modules\Products\Models\{Product,ProductAttribute,ProductAttributeValue,
 use Illuminate\Database\Eloquent\Builder; use Illuminate\Http\{RedirectResponse,Request}; use Illuminate\Support\Facades\DB; use Illuminate\Support\Str; use Illuminate\Validation\ValidationException; use Illuminate\View\View;
 
 class ProductsController extends Controller {
-    public function index(Request $r): View { $settings=$this->settingsRecord(); $attributes=$this->enabledAttributes(); $q=Product::query()->with(['category.parent','collection','line'])->withCount('variants')->withSum('variants','stock'); if($r->filled('search')) $q->where(fn(Builder $x)=>$x->where('name','like','%'.$r->string('search').'%')->orWhere('catalog_code','like','%'.$r->string('search').'%')->orWhereHas('variants',fn(Builder $v)=>$v->where('sku','like','%'.$r->string('search').'%'))); foreach(['category_id','product_collection_id','product_collection_line_id'] as $field) if($r->filled($field)) $q->where($field,$r->integer($field)); if($r->filled('parent_category_id')) $q->whereHas('category',fn(Builder $c)=>$c->where('parent_id',$r->integer('parent_category_id'))); if($r->filled('status')) $q->where('is_active',(string)$r->input('status')==='active'); foreach($attributes as $attribute) if($r->filled('attribute_'.$attribute->id)) $q->whereHas('variants.attributeValues',fn(Builder $v)=>$v->whereKey($r->integer('attribute_'.$attribute->id))); return view('tenant.products.index',['products'=>$q->latest()->paginate(15)->withQueryString(),'settings'=>$settings,'attributes'=>$attributes,'categories'=>ProductCategory::where('is_active',true)->orderBy('name')->get(),'collections'=>ProductCollection::where('is_active',true)->orderBy('name')->get(),'lines'=>ProductCollectionLine::where('is_active',true)->orderBy('name')->get(),'summary'=>['total'=>Product::count(),'active'=>Product::where('is_active',true)->count(),'inactive'=>Product::where('is_active',false)->count(),'variants'=>ProductVariant::count()]]); }
+    public function index(Request $r): View
+    {
+        $settings = $this->settingsRecord();
+        $attributes = $this->enabledAttributes();
+        $q = Product::query()
+            ->with(['type', 'category.parent', 'collection', 'line'])
+            ->withCount('variants')
+            ->withSum('variants', 'stock');
+
+        if ($r->filled('search')) {
+            $search = $r->string('search')->toString();
+            $q->where(fn (Builder $x) => $x
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('catalog_code', 'like', "%{$search}%")
+                ->orWhereHas('variants', fn (Builder $v) => $v->where('sku', 'like', "%{$search}%")));
+        }
+
+        foreach (['category_id', 'product_collection_id', 'product_collection_line_id', 'product_type_id'] as $field) {
+            if ($r->filled($field)) {
+                $q->where($field, $r->integer($field));
+            }
+        }
+
+        if ($r->filled('parent_category_id')) {
+            $q->whereHas('category', fn (Builder $c) => $c->where('parent_id', $r->integer('parent_category_id')));
+        }
+
+        if ($r->filled('status')) {
+            $q->where('is_active', (string) $r->input('status') === 'active');
+        }
+
+        foreach ($attributes as $attribute) {
+            if ($r->filled('attribute_' . $attribute->id)) {
+                $q->whereHas('variants.attributeValues', fn (Builder $v) => $v->whereKey($r->integer('attribute_' . $attribute->id)));
+            }
+        }
+
+        return view('tenant.products.index', [
+            'products' => $q->latest()->paginate(15)->withQueryString(),
+            'settings' => $settings,
+            'attributes' => $attributes,
+            'categories' => ProductCategory::where('is_active', true)->orderBy('name')->get(),
+            'collections' => ProductCollection::where('is_active', true)->orderBy('name')->get(),
+            'lines' => ProductCollectionLine::where('is_active', true)->orderBy('name')->get(),
+            'productTypes' => ProductType::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(),
+            'summary' => [
+                'total' => Product::count(),
+                'active' => Product::where('is_active', true)->count(),
+                'inactive' => Product::where('is_active', false)->count(),
+                'variants' => ProductVariant::count(),
+            ],
+        ]);
+    }
     public function create(): View { return view('tenant.products.form',$this->formData()); }
     public function store(StoreProductRequest $r): RedirectResponse { $product=DB::connection('tenant')->transaction(fn()=> $this->saveProduct(new Product,$r->validated())); return redirect()->route('products.show',$product)->with('success','Producto creado.'); }
     public function show(Product $product): View { $product->load(['type','category.parent','collection','line','variants.attributeValues.attribute']); return view('tenant.products.show',compact('product')); }

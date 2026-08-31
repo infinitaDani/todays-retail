@@ -15,6 +15,7 @@ use App\Http\Controllers\TasksController;
 use App\Http\Controllers\TenantTeamController;
 use App\Http\Controllers\MyTasksController;
 use App\Http\Controllers\ProductsController;
+use App\Http\Controllers\ProductImportController;
 use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\TenantRequestController;
 use App\Http\Controllers\WeeklyPlannerController;
@@ -61,6 +62,10 @@ Route::prefix('core-admin')->as('admin.')->middleware(['auth', 'core.admin'])->g
 Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
     Route::middleware('tenant.management')->group(function () {
         Route::get('products', [ProductsController::class, 'index'])->name('products.index'); Route::get('products/create', [ProductsController::class, 'create'])->name('products.create'); Route::post('products', [ProductsController::class, 'store'])->name('products.store'); Route::post('products/bulk', [ProductsController::class, 'bulk'])->name('products.bulk');
+        Route::get('products/import', [ProductImportController::class, 'create'])->name('products.imports.create');
+        Route::post('products/import/preview', [ProductImportController::class, 'preview'])->name('products.imports.preview');
+        Route::post('products/import/{productImport}', [ProductImportController::class, 'store'])->name('products.imports.store');
+        Route::get('products/import/{productImport}', [ProductImportController::class, 'show'])->name('products.imports.show');
         Route::get('products/settings', [ProductsController::class, 'settings'])->name('products.settings'); Route::put('products/settings', [ProductsController::class, 'updateSettings'])->name('products.settings.update');
         Route::get('products/types', [ProductTypeController::class, 'index'])->name('products.types.index');
         Route::get('products/types/create', [ProductTypeController::class, 'create'])->name('products.types.create');

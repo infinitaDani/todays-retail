@@ -11,7 +11,7 @@ class Product extends TenantModel
     protected $fillable = [
         'catalog_code', 'name', 'description', 'category_id',
         'product_collection_id', 'product_collection_line_id', 'product_type_id',
-        'usage_period', 'usage_period_unit', 'is_active',
+        'usage_period', 'usage_period_unit', 'unit', 'is_active',
     ];
 
     protected function casts(): array
