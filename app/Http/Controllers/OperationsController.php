@@ -45,6 +45,13 @@ class OperationsController extends Controller
         return response()->json($assignments->map(function (Assignment $assignment) use ($users, $scope): array {
             $user = $users->get($assignment->core_user_id);
             $shift = $assignment->shift;
+            $hasSupportMaterial = $shift->checklists->flatMap(fn ($checklist) => $checklist->items)->contains(function ($item) use ($scope): bool {
+                return $item->task->knowledgeArticles->contains(function ($article) use ($scope): bool {
+                    if ($article->status !== 'published') return false;
+                    if (($scope['is_account_administrator'] ?? false) || $scope['role'] === TenantOperationalScope::MANAGEMENT) return $article->versions->contains('status', 'published');
+                    return $article->versions->contains(fn ($version) => $version->status === 'published' && (in_array('all', $version->audience ?: ['all'], true) || in_array($scope['role'], $version->audience ?: ['all'], true)));
+                });
+            });
 
             return [
                 'id' => (string) $assignment->id,
@@ -60,7 +67,7 @@ class OperationsController extends Controller
                     'shift_id' => $assignment->shift_id,
                     'shift_name' => $shift->name,
                     'shift_hours' => substr((string) $shift->start_time, 0, 5).' → '.substr((string) $shift->end_time, 0, 5),
-                    'has_support_material' => $shift->checklists->flatMap(fn ($checklist) => $checklist->items)->contains(fn ($item) => $item->task->knowledgeArticles->contains(fn ($article) => $article->status === 'published' && ($scope['is_account_administrator'] ?? false || $scope['role'] === TenantOperationalScope::MANAGEMENT || $article->versions->contains(fn ($version) => $version->status === 'published' && (in_array('all',$version->audience ?: ['all'],true) || in_array($scope['role'],$version->audience ?: ['all'],true))))),
+                    'has_support_material' => $hasSupportMaterial,
                 ],
             ];
         }));
