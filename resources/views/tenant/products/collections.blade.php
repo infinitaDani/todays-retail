@@ -1,13 +1,13 @@
 <x-layouts.tenant
-    title="Categorías"
-    subtitle="Máximo dos niveles"
+    title="Colecciones"
+    subtitle="Organiza productos por colección y línea"
 >
     <div class="d-flex justify-content-end mb-3">
         <a
             class="btn btn-primary"
-            href="{{ route('products.categories.create') }}"
+            href="{{ route('products.collections.create') }}"
         >
-            Nueva categoría
+            Nueva colección
         </a>
     </div>
 
@@ -15,52 +15,61 @@
         <table class="table table-custom">
             <thead>
                 <tr>
-                    <th>Categoría principal</th>
-                    <th>Categoría</th>
-                    <th>Productos</th>
+                    <th>Nombre</th>
+                    <th>Referencia</th>
+                    <th>Líneas</th>
                     <th>Estado</th>
                     <th></th>
                 </tr>
             </thead>
 
             <tbody>
-                @forelse($categories as $c)
+                @forelse($collections as $collection)
                     <tr>
                         <td>
-                            {{ $c->parent?->name ?: ($c->parent_id ? '—' : $c->name) }}
+                            {{ $collection->name }}
                         </td>
 
                         <td>
-                            {{ $c->parent_id ? $c->name : '—' }}
+                            {{ $collection->reference ?: '—' }}
                         </td>
 
                         <td>
-                            {{ $c->products_count }}
+                            {{ $collection->lines_count ?? $collection->lines->count() }}
                         </td>
 
                         <td>
-                            {{ $c->is_active ? 'Activa' : 'Inactiva' }}
+                            {{ $collection->is_active ? 'Activa' : 'Inactiva' }}
                         </td>
 
                         <td>
-                            <a
-                                href="{{ route('products.categories.edit', $c) }}"
-                                class="btn btn-sm btn-light"
-                            >
-                                <i data-lucide="pencil"></i>
-                            </a>
+                            <div class="d-flex gap-1 justify-content-end">
+                                <a
+                                    href="{{ route('products.collections.show', $collection) }}"
+                                    class="btn btn-sm btn-light"
+                                >
+                                    <i data-lucide="eye"></i>
+                                </a>
+
+                                <a
+                                    href="{{ route('products.collections.edit', $collection) }}"
+                                    class="btn btn-sm btn-light"
+                                >
+                                    <i data-lucide="pencil"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
                         <td colspan="5">
-                            No hay categorías.
+                            No hay colecciones.
                         </td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
 
-        {{ $categories->links() }}
+        {{ $collections->links() }}
     </div>
 </x-layouts.tenant>
