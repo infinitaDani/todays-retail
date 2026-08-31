@@ -22,6 +22,28 @@
         </dl>
     </div>
 
+    <div class="tr-card mb-3">
+        <h5>Imágenes del producto</h5>
+        <form class="mb-3" method="POST" action="{{ route('products.images.store', $product) }}" enctype="multipart/form-data">
+            @csrf
+            <input class="form-control mb-2" type="file" name="images[]" accept=".jpg,.jpeg,.png,.webp" multiple required>
+            <button class="btn btn-outline-primary">Agregar imágenes generales</button>
+        </form>
+        <div class="d-flex flex-wrap gap-3">
+            @foreach ($product->generalImages as $image)
+                <div>
+                    <img class="rounded border" style="width:110px;height:110px;object-fit:cover" src="{{ route('products.images.show', [$product, $image]) }}" alt="{{ $image->alt_text ?: $product->name }}">
+                    <div class="mt-1 d-flex gap-1">
+                        @if (! $image->is_primary)
+                            <form method="POST" action="{{ route('products.images.primary', [$product, $image]) }}">@csrf @method('PATCH')<button class="btn btn-sm btn-light">Principal</button></form>
+                        @endif
+                        <form method="POST" action="{{ route('products.images.destroy', [$product, $image]) }}" onsubmit="return confirm('¿Eliminar esta imagen?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Eliminar</button></form>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+
     <div class="tr-card">
         <h5>Variantes y datos comerciales</h5>
         <div class="table-responsive">

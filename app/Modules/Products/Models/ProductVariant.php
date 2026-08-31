@@ -5,6 +5,8 @@ namespace App\Modules\Products\Models;
 use App\Modules\TenantModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class ProductVariant extends TenantModel
 {
@@ -56,4 +58,53 @@ class ProductVariant extends TenantModel
             'product_attribute_value_id',
         )->with('attribute');
     }
+
+    public function images(): HasMany
+	{
+		return $this->hasMany(ProductImage::class);
+	}
+
+	public function ownImages(): HasMany
+	{
+		return $this->images()
+			->orderBy('sort_order');
+	}
+
+	public function effectiveImages()
+	{
+		if ($this->ownImages()->exists()) {
+			return $this->ownImages();
+		}
+
+		return $this->product->generalImages();
+	}
+
+	public function displayImages()
+	{
+		return $this->effectiveImages();
+	}
+
+	public function primaryImage(): ?ProductImage
+	{
+		return $this->ownImages()
+			->where('is_primary', true)
+			->first();
+	}
+
+	public function displayPrimaryImage(): ?ProductImage
+	{
+		return $this->primaryImage()
+			?? $this->product->primaryImage();
+	}
+
+	protected static function booted(): void
+	{
+		static::deleting(function (ProductVariant $variant): void {
+			$variant->ownImages()
+				->get()
+				->each(function (ProductImage $image): void {
+					Storage::disk('local')->delete($image->path);
+				});
+		});
+	}
 }

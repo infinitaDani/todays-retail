@@ -16,6 +16,7 @@ use App\Http\Controllers\TenantTeamController;
 use App\Http\Controllers\MyTasksController;
 use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\ProductImportController;
+use App\Http\Controllers\ProductImageController;
 use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\TenantRequestController;
 use App\Http\Controllers\WeeklyPlannerController;
@@ -66,6 +67,10 @@ Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
         Route::post('products/import/preview', [ProductImportController::class, 'preview'])->name('products.imports.preview');
         Route::post('products/import/{productImport}', [ProductImportController::class, 'store'])->name('products.imports.store');
         Route::get('products/import/{productImport}', [ProductImportController::class, 'show'])->name('products.imports.show');
+        Route::post('products/{product}/images', [ProductImageController::class, 'store'])->name('products.images.store');
+        Route::get('products/{product}/images/{image}', [ProductImageController::class, 'show'])->name('products.images.show');
+        Route::patch('products/{product}/images/{image}/primary', [ProductImageController::class, 'primary'])->name('products.images.primary');
+        Route::delete('products/{product}/images/{image}', [ProductImageController::class, 'destroy'])->name('products.images.destroy');
         Route::get('products/settings', [ProductsController::class, 'settings'])->name('products.settings'); Route::put('products/settings', [ProductsController::class, 'updateSettings'])->name('products.settings.update');
         Route::get('products/types', [ProductTypeController::class, 'index'])->name('products.types.index');
         Route::get('products/types/create', [ProductTypeController::class, 'create'])->name('products.types.create');

@@ -5,6 +5,7 @@ namespace App\Modules\Products\Models;
 use App\Modules\TenantModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends TenantModel
 {
@@ -43,4 +44,34 @@ class Product extends TenantModel
     {
         return $this->hasMany(ProductVariant::class);
     }
+
+    public function images(): HasMany
+	{
+		return $this->hasMany(ProductImage::class)
+			->orderBy('sort_order');
+	}
+
+	public function generalImages(): HasMany
+	{
+		return $this->images()
+			->whereNull('product_variant_id');
+	}
+
+	public function primaryImage(): ?ProductImage
+	{
+		return $this->generalImages()
+			->where('is_primary', true)
+			->first();
+	}
+
+	protected static function booted(): void
+	{
+		static::deleting(function (Product $product): void {
+			$product->images()
+				->get()
+				->each(function (ProductImage $image): void {
+					Storage::disk('local')->delete($image->path);
+				});
+		});
+	}
 }

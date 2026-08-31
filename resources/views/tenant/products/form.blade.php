@@ -8,6 +8,7 @@
         <form
             method="POST"
             action="{{ $editing ? route('products.update', $product) : route('products.store') }}"
+            enctype="multipart/form-data"
         >
             @csrf
 
@@ -151,6 +152,26 @@
                 </div>
             </div>
 
+            <hr>
+
+            <section>
+                <h5>Imágenes del producto</h5>
+                <p class="text-muted">Puedes agregar varias imágenes generales. La primera será principal.</p>
+                <input class="form-control" type="file" name="images[]" accept=".jpg,.jpeg,.png,.webp" multiple>
+                @if ($editing && $product->generalImages->isNotEmpty())
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        @foreach ($product->generalImages as $image)
+                            <div>
+                                <img class="rounded border" style="width:80px;height:80px;object-fit:cover" src="{{ route('products.images.show', [$product, $image]) }}" alt="{{ $product->name }}">
+                                @if ($image->is_primary)
+                                    <small class="d-block text-success">Principal</small>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </section>
+
             @if ($attributes->isNotEmpty())
                 <hr>
 
@@ -231,6 +252,17 @@
                                 </select>
                             </div>
                         @endforeach
+
+                        <div class="col-12">
+                            <label class="form-label">Imágenes propias de esta variante <span class="text-muted">(Opcional)</span></label>
+                            <input class="form-control" type="file" name="variant_images[{{ is_array($variant) ? $i : $variant->id }}][]" accept=".jpg,.jpeg,.png,.webp" multiple>
+                            <div class="form-text">Si no agregas imágenes aquí, esta variante utilizará automáticamente las imágenes generales del producto.</div>
+                            @if (! is_array($variant) && $variant->images->isNotEmpty())
+                                <div class="text-success small mt-1">Esta variante utiliza imágenes propias</div>
+                            @else
+                                <div class="text-muted small mt-1">Usando imágenes generales del producto</div>
+                            @endif
+                        </div>
                     </div>
                 @endforeach
                 </div>
@@ -385,6 +417,13 @@
                                 </select>
                             </div>
                         @endforeach
+
+                        <div class="col-12">
+                            <label class="form-label">Imágenes propias de esta variante <span class="text-muted">(Opcional)</span></label>
+                            <input class="form-control" type="file" name="variant_images[${n}][]" accept=".jpg,.jpeg,.png,.webp" multiple>
+                            <div class="form-text">Si no agregas imágenes aquí, esta variante utilizará automáticamente las imágenes generales del producto.</div>
+                            <div class="text-muted small mt-1">Usando imágenes generales del producto</div>
+                        </div>
                     </div>`
                     );
 
