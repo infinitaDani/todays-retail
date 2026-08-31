@@ -515,6 +515,13 @@
                                                 )?->name
                                                 ?? $profile->first_name
                                             }}
+
+                                            @if ($profile->branch_id !== $branchId)
+                                                <small class="d-block text-muted mt-1">
+                                                    Sucursal principal:
+                                                    {{ $profile->branch?->name ?? 'Sin sucursal asignada' }}
+                                                </small>
+                                            @endif
                                         </td>
 
                                         @for ($day = 0; $day < 7; $day++)

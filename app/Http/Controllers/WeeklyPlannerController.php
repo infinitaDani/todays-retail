@@ -11,6 +11,7 @@ use App\Modules\Operations\Models\ScheduleSetting;
 use App\Modules\Operations\Models\Shift;
 use App\Modules\Operations\Models\StaffProfile;
 use App\Modules\Requests\Models\TenantRequest;
+use App\Core\Accounts\AccountUser;
 use App\Tenancy\TenantOperationalScope;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
@@ -98,13 +99,27 @@ class WeeklyPlannerController extends Controller
                 ->first();
         }
 
+        $accountUserIds = AccountUser::query()
+            ->where(
+                'account_id',
+                $request->attributes->get('tenantAccount')->id
+            )
+            ->pluck('user_id');
+
         $profiles = StaffProfile::query()
             ->where('status', 'active')
+            ->whereIn('core_user_id', $accountUserIds)
             ->when(
                 $branchId,
                 fn ($query) => $query->where(
-                    'branch_id',
-                    $branchId
+                    fn ($profiles) => $profiles
+                        ->where('branch_id', $branchId)
+                        ->orWhere(
+                            fn ($externalProfiles) => $externalProfiles
+                                ->where('can_work_other_branches', true)
+                                ->whereNotNull('branch_id')
+                                ->where('branch_id', '!=', $branchId)
+                        )
                 )
             )
             ->with('branch')
@@ -117,6 +132,10 @@ class WeeklyPlannerController extends Controller
 
         $assignments = Assignment::query()
             ->with('shift')
+            ->when(
+                $branchId,
+                fn ($query) => $query->where('branch_id', $branchId)
+            )
             ->whereIn(
                 'core_user_id',
                 $userIds
@@ -313,18 +332,34 @@ class WeeklyPlannerController extends Controller
             ]);
         }
 
-        $allowedUsers = StaffProfile::query()
+        $accountUserIds = AccountUser::query()
             ->where(
-                'branch_id',
-                $branchId
+                'account_id',
+                $request->attributes->get('tenantAccount')->id
             )
+            ->pluck('user_id');
+
+        $allowedUsers = StaffProfile::query()
+            ->where('status', 'active')
+            ->whereIn('core_user_id', $accountUserIds)
             ->where(
-                'status',
-                'active'
+                fn ($profiles) => $profiles
+                    ->where('branch_id', $branchId)
+                    ->orWhere(
+                        fn ($externalProfiles) => $externalProfiles
+                            ->where('can_work_other_branches', true)
+                            ->whereNotNull('branch_id')
+                            ->where('branch_id', '!=', $branchId)
+                    )
             )
             ->pluck(
                 'core_user_id'
             );
+
+        $staffProfiles = StaffProfile::query()
+            ->whereIn('core_user_id', $allowedUsers)
+            ->get()
+            ->keyBy('core_user_id');
 
         DB::connection('tenant')->transaction(
             function () use (
@@ -335,7 +370,8 @@ class WeeklyPlannerController extends Controller
                 $request,
                 $rangeStart,
                 $rangeEnd,
-                $historicalRequest
+                $historicalRequest,
+                $staffProfiles
             ): void {
                 foreach (
                     $data['cells'] as $key => $shiftId
@@ -386,6 +422,28 @@ class WeeklyPlannerController extends Controller
                             $date
                         )
                         ->first();
+
+                    if (
+                        $existing
+                        && (int) $existing->branch_id !== (int) $branchId
+                    ) {
+                        $profile = $staffProfiles->get($userId);
+                        $name = trim(implode(' ', array_filter([
+                            $profile?->first_name,
+                            $profile?->last_name,
+                        ]))) ?: 'Este colaborador';
+                        $assignedBranch = Branch::query()
+                            ->find($existing->branch_id);
+
+                        throw ValidationException::withMessages([
+                            'cells' => sprintf(
+                                '%s ya está asignada en %s el %s. Elimina primero esa asignación para poder asignarla en esta sucursal.',
+                                $name,
+                                $assignedBranch?->name ?? 'otra sucursal',
+                                Carbon::parse($date)->format('d/m/Y')
+                            ),
+                        ]);
+                    }
 
                     if (
                         $period->status === 'approved'

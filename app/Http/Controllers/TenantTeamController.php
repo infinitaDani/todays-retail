@@ -63,6 +63,7 @@ class TenantTeamController extends Controller
     public function store(Request $request, TenantOperationalScope $scopes): RedirectResponse
     {
         $data = $this->validateProfile($request, true);
+        $this->validateTemporaryBranchAuthorization($request, $scopes);
         $account = $request->attributes->get('tenantAccount');
         $user = User::query()->where('email', $data['email'])->first();
         if (! $user && empty($data['password'])) {
@@ -96,6 +97,7 @@ class TenantTeamController extends Controller
     {
         $membership = $this->membershipForProfile($request->attributes->get('tenantAccount')->id, $staffProfile);
         $data = $this->validateProfile($request);
+        $this->validateTemporaryBranchAuthorization($request, $scopes);
         $role = $this->operationalRole($data['role_id'], $scopes);
         $this->validateBranchForRole($data['branch_id'] ?? null, $role->code);
         $membership->update(['role_id' => $role->id]);
@@ -151,7 +153,7 @@ class TenantTeamController extends Controller
 
     private function validateProfile(Request $request, bool $creating = false): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'name' => ['required', 'string', 'max:255'], 'email' => ['required', 'email:rfc', 'max:255'],
             'password' => [$creating ? 'nullable' : 'prohibited', 'string', 'min:8', 'max:255'],
             'role_id' => ['required', 'integer'], 'branch_id' => ['nullable', 'integer'],
@@ -160,12 +162,49 @@ class TenantTeamController extends Controller
             'hire_date' => ['nullable', 'date'], 'termination_date' => ['nullable', 'date', 'after_or_equal:hire_date'],
             'emergency_contact_name' => ['nullable', 'string', 'max:150'], 'emergency_contact_phone' => ['nullable', 'string', 'max:50'],
             'emergency_contact_relationship' => ['nullable', 'string', 'max:100'], 'status' => ['required', Rule::in(['active', 'inactive'])],
+            'can_work_other_branches' => ['nullable', 'boolean'],
         ]);
+
+        $data['can_work_other_branches'] = $request->boolean('can_work_other_branches');
+
+        return $data;
     }
 
     private function profileAttributes(array $data): array
     {
-        return collect($data)->only(['branch_id', 'first_name', 'last_name', 'birth_date', 'hire_date', 'termination_date', 'phone', 'email', 'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship', 'status'])->all();
+        return collect($data)->only([
+            'branch_id',
+            'first_name',
+            'last_name',
+            'birth_date',
+            'hire_date',
+            'termination_date',
+            'phone',
+            'email',
+            'emergency_contact_name',
+            'emergency_contact_phone',
+            'emergency_contact_relationship',
+            'status',
+            'can_work_other_branches',
+        ])->all();
+    }
+
+    private function validateTemporaryBranchAuthorization(Request $request, TenantOperationalScope $scopes): void
+    {
+        if (! $request->has('can_work_other_branches')) {
+            return;
+        }
+
+        $scope = $scopes->for(
+            $request->user(),
+            $request->attributes->get('tenantAccount')
+        );
+
+        if (! $scopes->canManageTenant($scope)) {
+            throw new AuthorizationException(
+                'No tienes autorización para habilitar asignaciones temporales entre sucursales.'
+            );
+        }
     }
 
     private function operationalRole(int $roleId, TenantOperationalScope $scopes): Role

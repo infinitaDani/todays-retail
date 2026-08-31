@@ -8,14 +8,40 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StaffProfile extends TenantModel
 {
-    protected $fillable = ['core_user_id', 'branch_id', 'first_name', 'last_name', 'birth_date', 'hire_date', 'termination_date', 'phone', 'email', 'emergency_contact_name', 'emergency_contact_relationship', 'emergency_contact_phone', 'status'];
+    protected $fillable = [
+        'core_user_id',
+        'branch_id',
+        'can_work_other_branches',
+        'first_name',
+        'last_name',
+        'birth_date',
+        'hire_date',
+        'termination_date',
+        'phone',
+        'email',
+        'emergency_contact_name',
+        'emergency_contact_relationship',
+        'emergency_contact_phone',
+        'status',
+    ];
 
-    protected function casts(): array { return ['birth_date' => 'date', 'hire_date' => 'date', 'termination_date' => 'date']; }
+    protected function casts(): array
+    {
+        return [
+            'birth_date' => 'date',
+            'hire_date' => 'date',
+            'termination_date' => 'date',
+            'can_work_other_branches' => 'boolean',
+        ];
+    }
 
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
     }
 
-    public function documents(): HasMany { return $this->hasMany(StaffDocument::class); }
+    public function documents(): HasMany
+    {
+        return $this->hasMany(StaffDocument::class);
+    }
 }
