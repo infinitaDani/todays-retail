@@ -21,12 +21,14 @@ class ProductImport extends TenantModel
         'total_count',
         'errors',
         'warehouse_id',
+        'detect_size_from_code',
     ];
 
     protected function casts(): array
     {
         return [
             'errors' => 'array',
+            'detect_size_from_code' => 'boolean',
         ];
     }
 

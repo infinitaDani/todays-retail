@@ -32,6 +32,31 @@
             </div>
 
             <section class="mb-4">
+                <div class="form-check form-switch">
+                    <input
+                        class="form-check-input"
+                        id="detect-size-from-code"
+                        name="detect_size_from_code"
+                        type="checkbox"
+                        value="1"
+                        @checked(old('detect_size_from_code', false))
+                    >
+                    <label class="form-check-label fw-semibold" for="detect-size-from-code">
+                        Detectar talla desde el código del producto
+                    </label>
+                </div>
+                <div class="form-text">
+                    Identifica automáticamente la talla cuando el Código contiene el Código
+                    Catálogo seguido de una talla configurada. Ejemplo: 2392C52L + Código
+                    Catálogo 2392C52 → Talla L.
+                </div>
+
+                @error('detect_size_from_code')
+                    <div class="text-danger small mt-2">{{ $message }}</div>
+                @enderror
+            </section>
+
+            <section class="mb-4">
                 <h5 class="mb-1">Stock del archivo</h5>
 
                 @if (! $inventorySettings->manages_inventory)

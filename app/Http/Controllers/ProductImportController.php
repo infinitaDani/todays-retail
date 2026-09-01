@@ -54,7 +54,10 @@ class ProductImportController extends Controller
                 Rule::exists('tenant.warehouses', 'id')
                     ->where('is_active', true),
             ],
+            'detect_size_from_code' => ['nullable', 'boolean'],
         ]);
+
+        $detectSizeFromCode = $request->boolean('detect_size_from_code');
 
         $importsStock = $data['stock_import_mode'] === 'warehouse';
 
@@ -83,7 +86,7 @@ class ProductImportController extends Controller
         );
 
         try {
-            $preview = $service->preview($path);
+            $preview = $service->preview($path, $detectSizeFromCode);
         } catch (\Throwable $exception) {
             Storage::disk('local')->delete($path);
 
@@ -112,6 +115,7 @@ class ProductImportController extends Controller
                 ->values()
                 ->all(),
             'warehouse_id' => $data['warehouse_id'] ?? null,
+            'detect_size_from_code' => $detectSizeFromCode,
         ]);
         $import->load('warehouse.branch');
 

@@ -3,6 +3,7 @@
 namespace App\Modules\Products\Services;
 
 use App\Modules\Operations\Models\ScheduleSetting;
+use App\Modules\Products\Models\InventoryStock;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductCategory;
 use App\Modules\Products\Models\ProductCollection;
@@ -10,7 +11,6 @@ use App\Modules\Products\Models\ProductImport;
 use App\Modules\Products\Models\ProductSetting;
 use App\Modules\Products\Models\ProductType;
 use App\Modules\Products\Models\ProductVariant;
-use App\Modules\Products\Models\InventoryStock;
 use App\Modules\Products\Models\Warehouse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -50,8 +50,15 @@ class ProductExcelImportService
         'coleccion' => 'collection',
     ];
 
-    public function preview(string $path): array
-    {
+    public function __construct(
+        private readonly ProductSizeDetectionService $sizeDetection
+    ) {
+    }
+
+    public function preview(
+        string $path,
+        bool $detectSizeFromCode = false
+    ): array {
         $rows = $this->readRows($path);
         $existingSkus = ProductVariant::query()
             ->whereIn('sku', collect($rows)->pluck('sku')->filter()->unique())
@@ -71,6 +78,18 @@ class ProductExcelImportService
             $errors = $row['_errors'];
             $warnings = $row['_warnings'];
             $skuKey = $this->key($row['sku'] ?? '');
+            $sizeDetection = null;
+
+            if ($detectSizeFromCode) {
+                $sizeDetection = $this->sizeDetection->detect(
+                    $row['sku'],
+                    $row['catalog_code']
+                );
+
+                if ($sizeDetection['warning'] !== null) {
+                    $warnings[] = $sizeDetection['warning'];
+                }
+            }
 
             if ($skuKey !== '' && ($occurrences[$skuKey] ?? 0) > 1) {
                 $errors[] = 'El código está duplicado dentro del archivo.';
@@ -91,6 +110,9 @@ class ProductExcelImportService
             }
 
             $result[] = array_merge($row, [
+                'detected_size' => $sizeDetection['detected_size'] ?? null,
+                'detected_size_value_id' => $sizeDetection['attribute_value_id'] ?? null,
+                'size_suffix' => $sizeDetection['suffix'] ?? null,
                 'status' => $status,
                 'messages' => $messages,
             ]);
@@ -110,7 +132,10 @@ class ProductExcelImportService
 
     public function import(ProductImport $import): array
     {
-        $preview = $this->preview($import->excel_path);
+        $preview = $this->preview(
+            $import->excel_path,
+            (bool) $import->detect_size_from_code
+        );
         $created = 0;
         $existing = 0;
         $errors = [];
@@ -184,6 +209,19 @@ class ProductExcelImportService
                         'ice_rate' => $row['ice_rate'] ?: null,
                         'is_active' => true,
                     ]);
+
+                    if ($import->detect_size_from_code) {
+                        $sizeDetection = $this->sizeDetection->detect(
+                            $row['sku'],
+                            $row['catalog_code']
+                        );
+
+                        if ($sizeDetection['attribute_value_id'] !== null) {
+                            $variant->attributeValues()->syncWithoutDetaching([
+                                $sizeDetection['attribute_value_id'],
+                            ]);
+                        }
+                    }
 
                     if ($importsStock && $row['stock'] !== null) {
                         InventoryStock::updateOrCreate(

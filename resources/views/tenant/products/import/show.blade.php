@@ -19,6 +19,10 @@
     <div class="tr-card mb-3">
         <strong>{{ $import->original_filename ?: basename($import->excel_path) }}</strong>
         <span class="text-muted ms-2">{{ ucfirst($import->status) }}</span>
+        <div class="text-muted small mt-1">
+            Detección de talla desde Código:
+            {{ $import->detect_size_from_code ? 'Activada' : 'Desactivada' }}
+        </div>
     </div>
 
     @if (! empty($import->errors))
