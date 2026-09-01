@@ -93,6 +93,10 @@
                     <i data-lucide="upload"></i>
                     Importar productos
                 </a>
+                <a class="btn btn-outline-primary" href="{{ route('products.image-imports.create') }}">
+                    <i data-lucide="images"></i>
+                    Importar imágenes
+                </a>
                 <a class="btn btn-primary" href="{{ route('products.create') }}">
                     <i data-lucide="plus"></i>
                     Nuevo producto

@@ -16,6 +16,7 @@ use App\Http\Controllers\TenantTeamController;
 use App\Http\Controllers\MyTasksController;
 use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\ProductImportController;
+use App\Http\Controllers\ProductImageImportController;
 use App\Http\Controllers\ProductImageController;
 use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\TenantRequestController;
@@ -88,6 +89,16 @@ Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
             ->name('products.imports.store');
         Route::get('products/import/{productImport}', [ProductImportController::class, 'show'])
             ->name('products.imports.show');
+        Route::get('products/import-images', [ProductImageImportController::class, 'create'])
+            ->name('products.image-imports.create');
+        Route::post('products/import-images/preview', [ProductImageImportController::class, 'preview'])
+            ->name('products.image-imports.preview');
+        Route::post('products/import-images/{productImageImport}', [ProductImageImportController::class, 'store'])
+            ->name('products.image-imports.store');
+        Route::get('products/import-images/{productImageImport}', [ProductImageImportController::class, 'show'])
+            ->name('products.image-imports.show');
+        Route::delete('products/import-images/{productImageImport}', [ProductImageImportController::class, 'cancel'])
+            ->name('products.image-imports.cancel');
         Route::post('products/{product}/images', [ProductImageController::class, 'store'])
             ->name('products.images.store');
         Route::get('products/{product}/images/{image}', [ProductImageController::class, 'show'])

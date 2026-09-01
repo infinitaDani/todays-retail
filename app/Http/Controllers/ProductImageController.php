@@ -37,17 +37,34 @@ class ProductImageController extends Controller
             : "tenants/{$account->id}/products/{$product->id}/images";
         $images = $variant ? $variant->ownImages() : $product->generalImages();
         $order = (int) $images->max('sort_order');
+
         foreach ($data['images'] as $file) {
-            $path = $file->storeAs($directory, Str::uuid() . '.' . $file->extension(), 'local');
+            $contentHash = hash_file('sha256', $file->getRealPath());
+
+            if (is_string($contentHash) && ProductImage::query()
+                ->where('product_id', $product->id)
+                ->where('content_hash', $contentHash)
+                ->exists()) {
+                continue;
+            }
+
+            $path = $file->storeAs(
+                $directory,
+                Str::uuid() . '.' . $file->extension(),
+                'local'
+            );
+
             ProductImage::create([
                 'product_id' => $product->id,
                 'product_variant_id' => $variant?->id,
                 'path' => $path,
                 'original_filename' => $file->getClientOriginalName(),
+                'content_hash' => $contentHash ?: null,
                 'is_primary' => ! $images->exists(),
                 'sort_order' => ++$order,
             ]);
         }
+
         return back()->with('success', 'Imágenes guardadas.');
     }
 
@@ -58,16 +75,22 @@ class ProductImageController extends Controller
         $wasPrimary = $image->is_primary;
         Storage::disk('local')->delete($image->path);
         $image->delete();
-        if ($wasPrimary && $next = $scope->first()) { $next->update(['is_primary' => true]); }
+        if ($wasPrimary && $next = $scope->first()) {
+            $next->update(['is_primary' => true]);
+        }
+
         return back()->with('success', 'Imagen eliminada.');
     }
 
     public function primary(Product $product, ProductImage $image): RedirectResponse
     {
         abort_unless($image->product_id === $product->id, 404);
-        $query = ProductImage::where('product_id', $product->id)->where('product_variant_id', $image->product_variant_id);
+        $query = ProductImage::query()
+            ->where('product_id', $product->id)
+            ->where('product_variant_id', $image->product_variant_id);
         $query->update(['is_primary' => false]);
         $image->update(['is_primary' => true]);
+
         return back()->with('success', 'Imagen principal actualizada.');
     }
 }

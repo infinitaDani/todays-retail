@@ -261,9 +261,21 @@
                                     </a>
                                 </li>
                                 <li class="side-nav-item">
-                                    <a class="side-nav-link {{ request()->routeIs('products.imports.*') ? 'active' : '' }}" href="{{ route('products.imports.create') }}">
+                                    <a
+                                        class="side-nav-link {{ request()->routeIs('products.imports.*') ? 'active' : '' }}"
+                                        href="{{ route('products.imports.create') }}"
+                                    >
                                         <i data-lucide="upload"></i>
                                         <span>Importar productos</span>
+                                    </a>
+                                </li>
+                                <li class="side-nav-item">
+                                    <a
+                                        class="side-nav-link {{ request()->routeIs('products.image-imports.*') ? 'active' : '' }}"
+                                        href="{{ route('products.image-imports.create') }}"
+                                    >
+                                        <i data-lucide="images"></i>
+                                        <span>Importar imágenes</span>
                                     </a>
                                 </li>
                             @endif

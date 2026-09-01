@@ -557,6 +557,15 @@ class ProductsController extends Controller
             ? "tenants/{$account->id}/products/{$product->id}/variants/{$variant->id}"
             : "tenants/{$account->id}/products/{$product->id}/images";
         $images = $variant ? $variant->ownImages() : $product->generalImages();
+        $contentHash = hash_file('sha256', $file->getRealPath());
+
+        if (is_string($contentHash) && ProductImage::query()
+            ->where('product_id', $product->id)
+            ->where('content_hash', $contentHash)
+            ->exists()) {
+            return;
+        }
+
         $path = $file->store($directory, 'local');
 
         ProductImage::create([
@@ -564,6 +573,7 @@ class ProductsController extends Controller
             'product_variant_id' => $variant?->id,
             'path' => $path,
             'original_filename' => $file->getClientOriginalName(),
+            'content_hash' => $contentHash ?: null,
             'is_primary' => ! $images->exists(),
             'sort_order' => (int) $images->max('sort_order') + 1,
         ]);
