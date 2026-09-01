@@ -42,7 +42,11 @@
                         <option value="">Sin tipo</option>
 
                         @foreach ($productTypes as $type)
-                            <option value="{{ $type->id }}" data-supply="{{ $type->normalized_name === 'suministro' ? '1' : '0' }}" @selected(old('product_type_id', $product->product_type_id ?? null) == $type->id)>
+                            <option
+                                value="{{ $type->id }}"
+                                data-supply="{{ $type->normalized_name === 'suministro' ? '1' : '0' }}"
+                                @selected(old('product_type_id', $product->product_type_id ?? null) == $type->id)
+                            >
                                 {{ $type->name }}
                             </option>
                         @endforeach
@@ -51,7 +55,14 @@
 
                 <div class="col-md-4" data-supply-period hidden>
                     <label class="form-label" for="usage-period">Periodo de uso</label>
-                    <input class="form-control" id="usage-period" min="1" name="usage_period" type="number" value="{{ old('usage_period', $product->usage_period ?? '') }}">
+                    <input
+                        class="form-control"
+                        id="usage-period"
+                        min="1"
+                        name="usage_period"
+                        type="number"
+                        value="{{ old('usage_period', $product->usage_period ?? '') }}"
+                    >
                 </div>
 
                 <div class="col-md-4" data-supply-period hidden>
@@ -162,7 +173,12 @@
                     <div class="d-flex flex-wrap gap-2 mt-3">
                         @foreach ($product->generalImages as $image)
                             <div>
-                                <img class="rounded border" style="width:80px;height:80px;object-fit:cover" src="{{ route('products.images.show', [$product, $image]) }}" alt="{{ $product->name }}">
+                                <img
+                                    class="rounded border"
+                                    style="width: 80px; height: 80px; object-fit: cover"
+                                    src="{{ route('products.images.show', [$product, $image]) }}"
+                                    alt="{{ $product->name }}"
+                                >
                                 @if ($image->is_primary)
                                     <small class="d-block text-success">Principal</small>
                                 @endif
@@ -178,13 +194,13 @@
                 <h5>Variantes</h5>
 
                 <p class="text-muted">
-                Agrega las variantes/SKU desde esta tabla.
-                Los atributos disponibles dependen de Configuración.
+                    Agrega las variantes/SKU desde esta tabla.
+                    Los atributos disponibles dependen de Configuración.
                 </p>
 
                 <div id="variants">
-                @foreach (old('variants', $product->variants ?? []) as $i => $variant)
-                    <div class="row g-2 mb-2 border-bottom pb-2">
+                    @foreach (old('variants', $product->variants ?? []) as $i => $variant)
+                        <div class="row g-2 mb-2 border-bottom pb-2">
                         <div class="col-md-3">
                             <input
                                 class="form-control"
@@ -198,15 +214,6 @@
                         <div class="col-md-2">
                             <input
                                 class="form-control"
-                                name="variants[{{ $i }}][stock]"
-                                value="{{ is_array($variant) ? $variant['stock'] : $variant->stock }}"
-                                placeholder="Stock"
-                            >
-                        </div>
-
-                        <div class="col-md-2">
-                            <input
-                                class="form-control"
                                 name="variants[{{ $i }}][sale_price]"
                                 value="{{ is_array($variant) ? $variant['sale_price'] : $variant->sale_price }}"
                                 placeholder="Precio"
@@ -214,20 +221,51 @@
                         </div>
 
                         <div class="col-md-2">
-                            <input class="form-control" name="variants[{{ $i }}][minimum_stock]" value="{{ is_array($variant) ? ($variant['minimum_stock'] ?? '') : $variant->minimum_stock }}" placeholder="Mínimo inventario">
+                            <input
+                                class="form-control"
+                                name="variants[{{ $i }}][minimum_stock]"
+                                value="{{ is_array($variant) ? ($variant['minimum_stock'] ?? '') : $variant->minimum_stock }}"
+                                placeholder="Mínimo inventario"
+                            >
                         </div>
 
                         <div class="col-md-2">
-                            <input class="form-control" name="variants[{{ $i }}][pvp1]" value="{{ is_array($variant) ? ($variant['pvp1'] ?? '') : $variant->pvp1 }}" placeholder="PVP1">
+                            <input
+                                class="form-control"
+                                name="variants[{{ $i }}][pvp1]"
+                                value="{{ is_array($variant) ? ($variant['pvp1'] ?? '') : $variant->pvp1 }}"
+                                placeholder="PVP1"
+                            >
                         </div>
 
                         @if ($settings->manages_multiple_prices)
-                            <div class="col-md-2"><input class="form-control" name="variants[{{ $i }}][pvp2]" value="{{ is_array($variant) ? ($variant['pvp2'] ?? '') : $variant->pvp2 }}" placeholder="PVP2"></div>
-                            <div class="col-md-2"><input class="form-control" name="variants[{{ $i }}][pvp3]" value="{{ is_array($variant) ? ($variant['pvp3'] ?? '') : $variant->pvp3 }}" placeholder="PVP3"></div>
+                            <div class="col-md-2">
+                                <input
+                                    class="form-control"
+                                    name="variants[{{ $i }}][pvp2]"
+                                    value="{{ is_array($variant) ? ($variant['pvp2'] ?? '') : $variant->pvp2 }}"
+                                    placeholder="PVP2"
+                                >
+                            </div>
+                            <div class="col-md-2">
+                                <input
+                                    class="form-control"
+                                    name="variants[{{ $i }}][pvp3]"
+                                    value="{{ is_array($variant) ? ($variant['pvp3'] ?? '') : $variant->pvp3 }}"
+                                    placeholder="PVP3"
+                                >
+                            </div>
                         @endif
 
                         @if ($settings->manages_distribution_price)
-                            <div class="col-md-2"><input class="form-control" name="variants[{{ $i }}][distribution_price]" value="{{ is_array($variant) ? ($variant['distribution_price'] ?? '') : $variant->distribution_price }}" placeholder="PVP distribución"></div>
+                            <div class="col-md-2">
+                                <input
+                                    class="form-control"
+                                    name="variants[{{ $i }}][distribution_price]"
+                                    value="{{ is_array($variant) ? ($variant['distribution_price'] ?? '') : $variant->distribution_price }}"
+                                    placeholder="PVP distribución"
+                                >
+                            </div>
                         @endif
 
                         @foreach ($attributes as $attribute)
@@ -255,24 +293,32 @@
 
                         <div class="col-12">
                             <label class="form-label">Imágenes propias de esta variante <span class="text-muted">(Opcional)</span></label>
-                            <input class="form-control" type="file" name="variant_images[{{ is_array($variant) ? $i : $variant->id }}][]" accept=".jpg,.jpeg,.png,.webp" multiple>
-                            <div class="form-text">Si no agregas imágenes aquí, esta variante utilizará automáticamente las imágenes generales del producto.</div>
+                            <input
+                                class="form-control"
+                                type="file"
+                                name="variant_images[{{ is_array($variant) ? $i : $variant->id }}][]"
+                                accept=".jpg,.jpeg,.png,.webp"
+                                multiple
+                            >
+                            <div class="form-text">
+                                Si no agregas imágenes aquí, esta variante utilizará automáticamente las imágenes generales del producto.
+                            </div>
                             @if (! is_array($variant) && $variant->images->isNotEmpty())
                                 <div class="text-success small mt-1">Esta variante utiliza imágenes propias</div>
                             @else
                                 <div class="text-muted small mt-1">Usando imágenes generales del producto</div>
                             @endif
                         </div>
-                    </div>
-                @endforeach
+                        </div>
+                    @endforeach
                 </div>
 
                 <button
-                type="button"
-                class="btn btn-outline-secondary"
-                id="add-variant"
-            >
-                Agregar variante
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    id="add-variant"
+                >
+                    Agregar variante
                 </button>
             @else
                 <p class="text-muted mt-3 mb-0">No hay atributos habilitados. Este producto se guardará sin variantes configurables.</p>
@@ -329,14 +375,6 @@
                         <div class="col-md-2">
                             <input
                                 class="form-control"
-                                name="variants[${n}][stock]"
-                                placeholder="Stock"
-                            >
-                        </div>
-
-                        <div class="col-md-2">
-                            <input
-                                class="form-control"
                                 name="variants[${n}][minimum_stock]"
                                 placeholder="Mínimo inventario"
                             >
@@ -378,7 +416,11 @@
                                 <input class="form-control" name="variants[${n}][distribution_price]" placeholder="PVP distribución">
                             </div>
                             <div class="col-md-2">
-                                <input class="form-control" name="variants[${n}][distribution_price_with_tax]" placeholder="PVP distribución + IVA">
+                                <input
+                                    class="form-control"
+                                    name="variants[${n}][distribution_price_with_tax]"
+                                    placeholder="PVP distribución + IVA"
+                                >
                             </div>
                         @endif
 
@@ -388,15 +430,35 @@
 
                         <div class="col-12 d-flex flex-wrap gap-3">
                             <div class="form-check">
-                                <input class="form-check-input" id="sale-${n}" name="variants[${n}][is_for_sale]" type="checkbox" value="1" checked>
+                                <input
+                                    class="form-check-input"
+                                    id="sale-${n}"
+                                    name="variants[${n}][is_for_sale]"
+                                    type="checkbox"
+                                    value="1"
+                                    checked
+                                >
                                 <label class="form-check-label" for="sale-${n}">Para la venta</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" id="purchase-${n}" name="variants[${n}][is_for_purchase]" type="checkbox" value="1">
+                                <input
+                                    class="form-check-input"
+                                    id="purchase-${n}"
+                                    name="variants[${n}][is_for_purchase]"
+                                    type="checkbox"
+                                    value="1"
+                                >
                                 <label class="form-check-label" for="purchase-${n}">Para la compra</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" id="inventory-${n}" name="variants[${n}][is_inventory_item]" type="checkbox" value="1" checked>
+                                <input
+                                    class="form-check-input"
+                                    id="inventory-${n}"
+                                    name="variants[${n}][is_inventory_item]"
+                                    type="checkbox"
+                                    value="1"
+                                    checked
+                                >
                                 <label class="form-check-label" for="inventory-${n}">Inventariable</label>
                             </div>
                         </div>
@@ -421,7 +483,9 @@
                         <div class="col-12">
                             <label class="form-label">Imágenes propias de esta variante <span class="text-muted">(Opcional)</span></label>
                             <input class="form-control" type="file" name="variant_images[${n}][]" accept=".jpg,.jpeg,.png,.webp" multiple>
-                            <div class="form-text">Si no agregas imágenes aquí, esta variante utilizará automáticamente las imágenes generales del producto.</div>
+                            <div class="form-text">
+                                Si no agregas imágenes aquí, esta variante utilizará automáticamente las imágenes generales del producto.
+                            </div>
                             <div class="text-muted small mt-1">Usando imágenes generales del producto</div>
                         </div>
                     </div>`

@@ -9,6 +9,8 @@ use App\Modules\Products\Models\ProductImport;
 use App\Modules\Products\Models\ProductSetting;
 use App\Modules\Products\Models\ProductType;
 use App\Modules\Products\Models\ProductVariant;
+use App\Modules\Products\Models\InventoryStock;
+use App\Modules\Products\Models\Warehouse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -111,7 +113,13 @@ class ProductExcelImportService
         $created = 0;
         $existing = 0;
         $errors = [];
-      
+
+        if ($import->warehouse_id !== null) {
+            Warehouse::query()
+                ->whereKey($import->warehouse_id)
+                ->where('is_active', true)
+                ->firstOrFail();
+        }
 
         foreach ($preview['rows'] as $row) {
             if ($row['status'] === 'existing') {
@@ -125,7 +133,7 @@ class ProductExcelImportService
             }
 
             try {
-                DB::connection('tenant')->transaction(function () use ($row, &$created, &$existing): void {
+                DB::connection('tenant')->transaction(function () use ($row, $import, &$created, &$existing): void {
                     if (ProductVariant::query()->where('sku', $row['sku'])->exists()) {
                         $existing++;
 
@@ -133,9 +141,9 @@ class ProductExcelImportService
                     }
 
                     $product = Product::query()
-					->where('catalog_code', $row['catalog_code'])
-					->oldest('id')
-					->first();
+                        ->where('catalog_code', $row['catalog_code'])
+                        ->oldest('id')
+                        ->first();
 
                     if (! $product) {
                         $product = Product::create([
@@ -149,14 +157,10 @@ class ProductExcelImportService
                             'is_active' => true,
                         ]);
                     }
-
-                
-
-                    ProductVariant::create([
+                    $variant = ProductVariant::create([
                         'product_id' => $product->id,
                         'sku' => $row['sku'],
                         'auxiliary_code' => $row['auxiliary_code'] ?: null,
-                        'stock' => $row['stock'],
                         'minimum_stock' => $row['minimum_stock'],
                         'sale_price' => $row['pvp1'],
                         'pvp1' => $row['pvp1'],
@@ -175,6 +179,20 @@ class ProductExcelImportService
                         'ice_rate' => $row['ice_rate'] ?: null,
                         'is_active' => true,
                     ]);
+
+                    if ($import->warehouse_id !== null && $row['stock'] !== null) {
+                        InventoryStock::updateOrCreate(
+                            [
+                                'warehouse_id' => $import->warehouse_id,
+                                'product_variant_id' => $variant->id,
+                            ],
+                            [
+                                'quantity' => $row['stock'],
+                                'sync_source' => 'excel_initial',
+                            ],
+                        );
+                    }
+
                     $created++;
                 });
             } catch (\Throwable $exception) {
@@ -419,16 +437,16 @@ class ProductExcelImportService
     }
 
     private function header(string $value): string
-	{
-		return trim(
-			preg_replace(
-				'/[^a-z0-9]+/',
-				'_',
-				mb_strtolower(Str::ascii(trim($value)))
-			),
-			'_'
-		);
-	}
+    {
+        return trim(
+            preg_replace(
+                '/[^a-z0-9]+/',
+                '_',
+                mb_strtolower(Str::ascii(trim($value))),
+            ),
+            '_',
+        );
+    }
 
     private function key(string $value): string
     {

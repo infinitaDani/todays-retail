@@ -140,7 +140,7 @@
                                 <td>{{ $product->line?->name ?: '—' }}</td>
                             @endif
                             <td>{{ $product->variants_count }}</td>
-                            <td>{{ $product->variants_sum_stock ?? 0 }}</td>
+                            <td>{{ $product->operational_stock_total ?? 0 }}</td>
                             <td>
                                 <span class="badge badge-soft-{{ $product->is_active ? 'success' : 'warning' }}">
                                     {{ $product->is_active ? 'Activo' : 'Inactivo' }}

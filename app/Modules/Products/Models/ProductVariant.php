@@ -11,17 +11,33 @@ use Illuminate\Support\Facades\Storage;
 class ProductVariant extends TenantModel
 {
     protected $fillable = [
-        'product_id', 'sku', 'auxiliary_code', 'stock', 'minimum_stock',
-        'sale_price', 'purchase_price', 'is_for_sale', 'is_for_purchase',
-        'is_taxable', 'tax_rate', 'is_inventory_item', 'pvp1', 'pvp1_with_tax',
-        'pvp2', 'pvp2_with_tax', 'pvp3', 'pvp3_with_tax', 'distribution_price',
-        'distribution_price_with_tax', 'is_active',
+        'product_id',
+        'sku',
+        'auxiliary_code',
+        'minimum_stock',
+        'sale_price',
+        'purchase_price',
+        'is_for_sale',
+        'is_for_purchase',
+        'is_taxable',
+        'tax_rate',
+        'is_inventory_item',
+        'pvp1',
+        'pvp1_with_tax',
+        'pvp2',
+        'pvp2_with_tax',
+        'pvp3',
+        'pvp3_with_tax',
+        'distribution_price',
+        'distribution_price_with_tax',
+        'is_active',
         'ice_rate',
     ];
 
     protected function casts(): array
     {
         return [
+            // Legacy compatibility only. Operational stock lives in inventory_stocks.
             'stock' => 'decimal:3',
             'minimum_stock' => 'decimal:3',
             'sale_price' => 'decimal:4',
@@ -60,51 +76,56 @@ class ProductVariant extends TenantModel
     }
 
     public function images(): HasMany
-	{
-		return $this->hasMany(ProductImage::class);
-	}
+    {
+        return $this->hasMany(ProductImage::class);
+    }
 
-	public function ownImages(): HasMany
-	{
-		return $this->images()
-			->orderBy('sort_order');
-	}
+    public function ownImages(): HasMany
+    {
+        return $this->images()
+            ->orderBy('sort_order');
+    }
 
-	public function effectiveImages()
-	{
-		if ($this->ownImages()->exists()) {
-			return $this->ownImages();
-		}
+    public function effectiveImages()
+    {
+        if ($this->ownImages()->exists()) {
+            return $this->ownImages();
+        }
 
-		return $this->product->generalImages();
-	}
+        return $this->product->generalImages();
+    }
 
-	public function displayImages()
-	{
-		return $this->effectiveImages();
-	}
+    public function displayImages()
+    {
+        return $this->effectiveImages();
+    }
 
-	public function primaryImage(): ?ProductImage
-	{
-		return $this->ownImages()
-			->where('is_primary', true)
-			->first();
-	}
+    public function primaryImage(): ?ProductImage
+    {
+        return $this->ownImages()
+            ->where('is_primary', true)
+            ->first();
+    }
 
-	public function displayPrimaryImage(): ?ProductImage
-	{
-		return $this->primaryImage()
-			?? $this->product->primaryImage();
-	}
+    public function displayPrimaryImage(): ?ProductImage
+    {
+        return $this->primaryImage()
+            ?? $this->product->primaryImage();
+    }
 
-	protected static function booted(): void
-	{
-		static::deleting(function (ProductVariant $variant): void {
-			$variant->ownImages()
-				->get()
-				->each(function (ProductImage $image): void {
-					Storage::disk('local')->delete($image->path);
-				});
-		});
-	}
+    public function inventoryStocks(): HasMany
+    {
+        return $this->hasMany(InventoryStock::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (ProductVariant $variant): void {
+            $variant->ownImages()
+                ->get()
+                ->each(function (ProductImage $image): void {
+                    Storage::disk('local')->delete($image->path);
+                });
+        });
+    }
 }

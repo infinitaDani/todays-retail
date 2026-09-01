@@ -5,16 +5,48 @@
             Sube tu archivo de productos para revisar los datos antes de importarlos.
         </p>
 
-        <form method="POST" action="{{ route('products.imports.preview') }}" enctype="multipart/form-data">
+        <form
+            method="POST"
+            action="{{ route('products.imports.preview') }}"
+            enctype="multipart/form-data"
+        >
             @csrf
+
             <div class="mb-3">
                 <label class="form-label" for="products-excel">Archivo Excel</label>
-                <input id="products-excel" class="form-control @error('excel') is-invalid @enderror" type="file" name="excel" accept=".xlsx,.xls" required>
-                <div class="form-text">Formatos permitidos: .xlsx y .xls. El archivo no se importará todavía.</div>
+                <input
+                    id="products-excel"
+                    class="form-control @error('excel') is-invalid @enderror"
+                    type="file"
+                    name="excel"
+                    accept=".xlsx,.xls"
+                    required
+                >
+                <div class="form-text">
+                    Formatos permitidos: .xlsx y .xls. El archivo no se importará todavía.
+                </div>
+
                 @error('excel')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="import-warehouse">Bodega para stock inicial</label>
+                <select id="import-warehouse" class="form-select" name="warehouse_id">
+                    <option value="">No importar el stock del Excel</option>
+
+                    @foreach ($warehouses as $warehouse)
+                        <option value="{{ $warehouse->id }}" @selected(old('warehouse_id') == $warehouse->id)>
+                            {{ $warehouse->branch->name }} · {{ $warehouse->name }}
+                        </option>
+                    @endforeach
+                </select>
+                <div class="form-text">
+                    Sin bodega, los SKUs se crean pero el Stock del archivo no se registra.
+                </div>
+            </div>
+
             <button class="btn btn-primary" type="submit">
                 <i data-lucide="scan-search"></i>
                 Previsualizar importación
@@ -42,7 +74,9 @@
                 <tbody>
                     @forelse ($imports as $import)
                         <tr>
-                            <td>{{ $import->original_filename ?: basename($import->excel_path) }}</td>
+                            <td>
+                                {{ $import->original_filename ?: basename($import->excel_path) }}
+                            </td>
                             <td>{{ $import->created_at?->format('d/m/Y H:i') }}</td>
                             <td>{{ ucfirst($import->status) }}</td>
                             <td>{{ $import->created_count }}</td>

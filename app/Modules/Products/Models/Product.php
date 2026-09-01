@@ -2,22 +2,34 @@
 
 namespace App\Modules\Products\Models;
 
+use App\Modules\Requests\Models\TenantRequestItem;
 use App\Modules\TenantModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Facades\Storage;
 
 class Product extends TenantModel
 {
     protected $fillable = [
-        'catalog_code', 'name', 'description', 'category_id',
-        'product_collection_id', 'product_collection_line_id', 'product_type_id',
-        'usage_period', 'usage_period_unit', 'unit', 'is_active',
+        'catalog_code',
+        'name',
+        'description',
+        'category_id',
+        'product_collection_id',
+        'product_collection_line_id',
+        'product_type_id',
+        'usage_period',
+        'usage_period_unit',
+        'unit',
+        'is_active',
     ];
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return [
+            'is_active' => 'boolean',
+        ];
     }
 
     public function category(): BelongsTo
@@ -45,33 +57,48 @@ class Product extends TenantModel
         return $this->hasMany(ProductVariant::class);
     }
 
+    public function inventoryStocks(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            InventoryStock::class,
+            ProductVariant::class,
+            'product_id',
+            'product_variant_id',
+        );
+    }
+
+    public function requestItems(): HasMany
+    {
+        return $this->hasMany(TenantRequestItem::class);
+    }
+
     public function images(): HasMany
-	{
-		return $this->hasMany(ProductImage::class)
-			->orderBy('sort_order');
-	}
+    {
+        return $this->hasMany(ProductImage::class)
+            ->orderBy('sort_order');
+    }
 
-	public function generalImages(): HasMany
-	{
-		return $this->images()
-			->whereNull('product_variant_id');
-	}
+    public function generalImages(): HasMany
+    {
+        return $this->images()
+            ->whereNull('product_variant_id');
+    }
 
-	public function primaryImage(): ?ProductImage
-	{
-		return $this->generalImages()
-			->where('is_primary', true)
-			->first();
-	}
+    public function primaryImage(): ?ProductImage
+    {
+        return $this->generalImages()
+            ->where('is_primary', true)
+            ->first();
+    }
 
-	protected static function booted(): void
-	{
-		static::deleting(function (Product $product): void {
-			$product->images()
-				->get()
-				->each(function (ProductImage $image): void {
-					Storage::disk('local')->delete($image->path);
-				});
-		});
-	}
+    protected static function booted(): void
+    {
+        static::deleting(function (Product $product): void {
+            $product->images()
+                ->get()
+                ->each(function (ProductImage $image): void {
+                    Storage::disk('local')->delete($image->path);
+                });
+        });
+    }
 }

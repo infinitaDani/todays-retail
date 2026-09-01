@@ -61,27 +61,95 @@ Route::prefix('core-admin')->as('admin.')->middleware(['auth', 'core.admin'])->g
 });
 
 Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
+    Route::middleware('tenant.operational')->group(function () {
+        Route::get('products/categories', [ProductsController::class, 'categories'])
+            ->name('products.categories');
+        Route::get('products/collections', [ProductsController::class, 'collections'])
+            ->name('products.collections');
+        Route::get('products/collections/{collection}', [ProductsController::class, 'showCollection'])
+            ->whereNumber('collection')
+            ->name('products.collections.show');
+    });
+
     Route::middleware('tenant.management')->group(function () {
-        Route::get('products', [ProductsController::class, 'index'])->name('products.index'); Route::get('products/create', [ProductsController::class, 'create'])->name('products.create'); Route::post('products', [ProductsController::class, 'store'])->name('products.store'); Route::post('products/bulk', [ProductsController::class, 'bulk'])->name('products.bulk');
-        Route::get('products/import', [ProductImportController::class, 'create'])->name('products.imports.create');
-        Route::post('products/import/preview', [ProductImportController::class, 'preview'])->name('products.imports.preview');
-        Route::post('products/import/{productImport}', [ProductImportController::class, 'store'])->name('products.imports.store');
-        Route::get('products/import/{productImport}', [ProductImportController::class, 'show'])->name('products.imports.show');
-        Route::post('products/{product}/images', [ProductImageController::class, 'store'])->name('products.images.store');
-        Route::get('products/{product}/images/{image}', [ProductImageController::class, 'show'])->name('products.images.show');
-        Route::patch('products/{product}/images/{image}/primary', [ProductImageController::class, 'primary'])->name('products.images.primary');
-        Route::delete('products/{product}/images/{image}', [ProductImageController::class, 'destroy'])->name('products.images.destroy');
-        Route::get('products/settings', [ProductsController::class, 'settings'])->name('products.settings'); Route::put('products/settings', [ProductsController::class, 'updateSettings'])->name('products.settings.update');
-        Route::get('products/types', [ProductTypeController::class, 'index'])->name('products.types.index');
-        Route::get('products/types/create', [ProductTypeController::class, 'create'])->name('products.types.create');
-        Route::post('products/types', [ProductTypeController::class, 'store'])->name('products.types.store');
-        Route::get('products/types/{productType}/edit', [ProductTypeController::class, 'edit'])->name('products.types.edit');
-        Route::put('products/types/{productType}', [ProductTypeController::class, 'update'])->name('products.types.update');
-        Route::patch('products/types/{productType}/status', [ProductTypeController::class, 'toggle'])->name('products.types.status');
-        Route::get('products/categories', [ProductsController::class, 'categories'])->name('products.categories'); Route::get('products/categories/create', [ProductsController::class, 'createCategory'])->name('products.categories.create'); Route::post('products/categories', [ProductsController::class, 'storeCategory'])->name('products.categories.store'); Route::get('products/categories/{category}/edit', [ProductsController::class, 'editCategory'])->name('products.categories.edit'); Route::put('products/categories/{category}', [ProductsController::class, 'updateCategory'])->name('products.categories.update'); Route::patch('products/categories/{category}/status', [ProductsController::class, 'toggleCategory'])->name('products.categories.status');
-        Route::get('products/collections', [ProductsController::class, 'collections'])->name('products.collections'); Route::get('products/collections/create', [ProductsController::class, 'createCollection'])->name('products.collections.create'); Route::post('products/collections', [ProductsController::class, 'storeCollection'])->name('products.collections.store'); Route::get('products/collections/{collection}', [ProductsController::class, 'showCollection'])->name('products.collections.show'); Route::get('products/collections/{collection}/edit', [ProductsController::class, 'editCollection'])->name('products.collections.edit'); Route::put('products/collections/{collection}', [ProductsController::class, 'updateCollection'])->name('products.collections.update'); Route::patch('products/collections/{collection}/status', [ProductsController::class, 'toggleCollection'])->name('products.collections.status'); Route::post('products/collections/{collection}/lines', [ProductsController::class, 'storeLine'])->name('products.collections.lines.store'); Route::put('products/collections/{collection}/lines/{line}', [ProductsController::class, 'updateLine'])->name('products.collections.lines.update');
-        Route::get('products/{product}', [ProductsController::class, 'show'])->name('products.show'); Route::get('products/{product}/edit', [ProductsController::class, 'edit'])->name('products.edit'); Route::put('products/{product}', [ProductsController::class, 'update'])->name('products.update'); Route::patch('products/{product}/status', [ProductsController::class, 'toggle'])->name('products.status');
-        Route::delete('products/{product}', [ProductsController::class, 'destroy'])->name('products.destroy');
+        Route::get('products', [ProductsController::class, 'index'])
+            ->name('products.index');
+        Route::get('products/create', [ProductsController::class, 'create'])
+            ->name('products.create');
+        Route::post('products', [ProductsController::class, 'store'])
+            ->name('products.store');
+        Route::post('products/bulk', [ProductsController::class, 'bulk'])
+            ->name('products.bulk');
+        Route::get('products/import', [ProductImportController::class, 'create'])
+            ->name('products.imports.create');
+        Route::post('products/import/preview', [ProductImportController::class, 'preview'])
+            ->name('products.imports.preview');
+        Route::post('products/import/{productImport}', [ProductImportController::class, 'store'])
+            ->name('products.imports.store');
+        Route::get('products/import/{productImport}', [ProductImportController::class, 'show'])
+            ->name('products.imports.show');
+        Route::post('products/{product}/images', [ProductImageController::class, 'store'])
+            ->name('products.images.store');
+        Route::get('products/{product}/images/{image}', [ProductImageController::class, 'show'])
+            ->name('products.images.show');
+        Route::patch('products/{product}/images/{image}/primary', [ProductImageController::class, 'primary'])
+            ->name('products.images.primary');
+        Route::delete('products/{product}/images/{image}', [ProductImageController::class, 'destroy'])
+            ->name('products.images.destroy');
+        Route::get('products/settings', [ProductsController::class, 'settings'])
+            ->name('products.settings');
+        Route::put('products/settings', [ProductsController::class, 'updateSettings'])
+            ->name('products.settings.update');
+        Route::get('products/types', [ProductTypeController::class, 'index'])
+            ->name('products.types.index');
+        Route::get('products/types/create', [ProductTypeController::class, 'create'])
+            ->name('products.types.create');
+        Route::post('products/types', [ProductTypeController::class, 'store'])
+            ->name('products.types.store');
+        Route::get('products/types/{productType}/edit', [ProductTypeController::class, 'edit'])
+            ->name('products.types.edit');
+        Route::put('products/types/{productType}', [ProductTypeController::class, 'update'])
+            ->name('products.types.update');
+        Route::patch('products/types/{productType}/status', [ProductTypeController::class, 'toggle'])
+            ->name('products.types.status');
+        Route::get('products/categories/create', [ProductsController::class, 'createCategory'])
+            ->name('products.categories.create');
+        Route::post('products/categories', [ProductsController::class, 'storeCategory'])
+            ->name('products.categories.store');
+        Route::get('products/categories/{category}/edit', [ProductsController::class, 'editCategory'])
+            ->name('products.categories.edit');
+        Route::put('products/categories/{category}', [ProductsController::class, 'updateCategory'])
+            ->name('products.categories.update');
+        Route::patch('products/categories/{category}/status', [ProductsController::class, 'toggleCategory'])
+            ->name('products.categories.status');
+        Route::delete('products/categories/{category}', [ProductsController::class, 'destroyCategory'])
+            ->name('products.categories.destroy');
+        Route::get('products/collections/create', [ProductsController::class, 'createCollection'])
+            ->name('products.collections.create');
+        Route::post('products/collections', [ProductsController::class, 'storeCollection'])
+            ->name('products.collections.store');
+        Route::get('products/collections/{collection}/edit', [ProductsController::class, 'editCollection'])
+            ->name('products.collections.edit');
+        Route::put('products/collections/{collection}', [ProductsController::class, 'updateCollection'])
+            ->name('products.collections.update');
+        Route::patch('products/collections/{collection}/status', [ProductsController::class, 'toggleCollection'])
+            ->name('products.collections.status');
+        Route::delete('products/collections/{collection}', [ProductsController::class, 'destroyCollection'])
+            ->name('products.collections.destroy');
+        Route::post('products/collections/{collection}/lines', [ProductsController::class, 'storeLine'])
+            ->name('products.collections.lines.store');
+        Route::put('products/collections/{collection}/lines/{line}', [ProductsController::class, 'updateLine'])
+            ->name('products.collections.lines.update');
+        Route::get('products/{product}', [ProductsController::class, 'show'])
+            ->name('products.show');
+        Route::get('products/{product}/edit', [ProductsController::class, 'edit'])
+            ->name('products.edit');
+        Route::put('products/{product}', [ProductsController::class, 'update'])
+            ->name('products.update');
+        Route::patch('products/{product}/status', [ProductsController::class, 'toggle'])
+            ->name('products.status');
+        Route::delete('products/{product}', [ProductsController::class, 'destroy'])
+            ->name('products.destroy');
         Route::get('operations/branches', [BranchController::class, 'index'])->name('operations.branches');
         Route::get('operations/branches/create', [BranchController::class, 'create'])->name('operations.branches.create');
         Route::post('operations/branches', [BranchController::class, 'store'])->name('operations.branches.store');

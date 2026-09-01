@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Modules\Products\Models\ProductImport;
+use App\Modules\Products\Models\Warehouse;
 use App\Modules\Products\Services\ProductExcelImportService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ProductImportController extends Controller
@@ -20,6 +22,11 @@ class ProductImportController extends Controller
                 ->where('core_user_id', $request->user()->id)
                 ->latest()
                 ->paginate(15),
+            'warehouses' => Warehouse::query()
+                ->where('is_active', true)
+                ->with('branch')
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
@@ -29,6 +36,12 @@ class ProductImportController extends Controller
     ): View|RedirectResponse {
         $data = $request->validate([
             'excel' => ['required', 'file', 'mimes:xlsx,xls', 'max:20480'],
+            'warehouse_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('tenant.warehouses', 'id')
+                    ->where('is_active', true),
+            ],
         ]);
 
         $account = $request->attributes->get('tenantAccount');
@@ -68,7 +81,9 @@ class ProductImportController extends Controller
                 ])
                 ->values()
                 ->all(),
+            'warehouse_id' => $data['warehouse_id'] ?? null,
         ]);
+        $import->load('warehouse.branch');
 
         return view('tenant.products.import.preview', [
             'import' => $import,
