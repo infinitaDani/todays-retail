@@ -1,4 +1,219 @@
-<x-layouts.tenant title="Knowledge Center" subtitle="Backoffice de artículos, versiones y categorías">
-    <div class="row g-3 mb-4">@foreach ([['Artículos',$summary['total'],'book-open','primary'],['Publicados',$summary['published'],'circle-check','success'],['Borradores / archivados',$summary['draft_or_inactive'],'file-clock','warning'],['Lecturas sin confirmar',$summary['pending_reads'],'book-marked','primary']] as [$label,$value,$icon,$color])<div class="col-6 col-xl-3"><div class="summary-card"><span class="summary-icon bg-{{ $color }}-subtle text-{{ $color }}"><i data-lucide="{{ $icon }}"></i></span><div class="summary-value">{{ $value }}</div><div class="summary-label">{{ $label }}</div></div></div>@endforeach</div>
-    <div class="tr-card p-0 overflow-hidden"><form class="listing-toolbar p-3 border-bottom" method="GET"><div class="listing-search input-group"><span class="input-group-text bg-transparent"><i data-lucide="search"></i></span><input class="form-control" name="search" value="{{ request('search') }}" placeholder="Buscar artículo o categoría"></div><div class="listing-filters"><select class="form-select" name="category" onchange="this.form.submit()"><option value="">Todas las categorías</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected((string)request('category') === (string)$category->id)>{{ $category->name }}</option>@endforeach</select><select class="form-select" name="status" onchange="this.form.submit()"><option value="">Todos los estados</option><option value="published" @selected(request('status') === 'published')>Publicados</option><option value="draft" @selected(request('status') === 'draft')>Borradores</option><option value="inactive" @selected(request('status') === 'inactive')>Archivados</option></select><a class="btn btn-outline-secondary" href="{{ route('knowledge.articles') }}">Limpiar</a><a class="btn btn-outline-secondary" href="{{ route('knowledge.categories') }}">Categorías</a><a class="btn btn-primary" href="{{ route('knowledge.articles.create') }}"><i data-lucide="plus" class="me-1"></i>Nuevo artículo</a></div></form><div class="table-responsive"><table class="table table-custom align-middle mb-0"><thead><tr><th>Artículo</th><th>Categorías</th><th>Versiones</th><th>Actualizado</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead><tbody>@forelse($articles as $article)<tr><td class="fw-semibold">{{ $article->title }}</td><td>@forelse($article->categories as $category)<span class="badge badge-soft-primary me-1">{{ $category->name }}</span>@empty — @endforelse</td><td>v{{ $article->version }} <span class="text-muted">({{ $article->versions->count() }})</span></td><td>{{ $article->updated_at->format('d/m/Y') }}</td><td><span class="badge badge-label badge-soft-{{ $article->status === 'published' ? 'success' : ($article->status === 'draft' ? 'primary' : 'warning') }}">{{ $article->status === 'published' ? 'Publicado' : ($article->status === 'draft' ? 'Borrador' : 'Archivado') }}</span></td><td class="text-end"><a class="btn btn-sm btn-light" href="{{ route('knowledge.articles.show',$article) }}" title="Ver"><i data-lucide="eye"></i></a><a class="btn btn-sm btn-light" href="{{ route('knowledge.articles.edit',$article) }}" title="Editar"><i data-lucide="pencil"></i></a></td></tr>@empty<tr><td colspan="6"><div class="listing-empty">No se encontraron artículos.</div></td></tr>@endforelse</tbody></table></div><div class="listing-pagination px-3">{{ $articles->links() }}</div></div>
+<x-layouts.tenant
+    title="Knowledge Center"
+    subtitle="Backoffice de artículos, versiones y categorías"
+>
+    <div class="row g-3 mb-4">
+        @foreach ([
+            ['Artículos', $summary['total'], 'book-open', 'primary'],
+            ['Publicados', $summary['published'], 'circle-check', 'success'],
+            ['Borradores / archivados', $summary['draft_or_inactive'], 'file-clock', 'warning'],
+            ['Lecturas sin confirmar', $summary['pending_reads'], 'book-marked', 'primary'],
+        ] as [$label, $value, $icon, $color])
+            <div class="col-6 col-xl-3">
+                <div class="summary-card">
+                    <span
+                        class="summary-icon bg-{{ $color }}-subtle text-{{ $color }}"
+                    >
+                        <i data-lucide="{{ $icon }}"></i>
+                    </span>
+
+                    <div class="summary-value">
+                        {{ $value }}
+                    </div>
+
+                    <div class="summary-label">
+                        {{ $label }}
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </div>
+
+    <div class="tr-card p-0 overflow-hidden">
+        <form
+            class="listing-toolbar p-3 border-bottom"
+            method="GET"
+        >
+            <div class="listing-search input-group">
+                <span class="input-group-text bg-transparent">
+                    <i data-lucide="search"></i>
+                </span>
+
+                <input
+                    class="form-control"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Buscar artículo o categoría"
+                >
+            </div>
+
+            <div class="listing-filters">
+                <select
+                    class="form-select"
+                    name="category"
+                    onchange="this.form.submit()"
+                >
+                    <option value="">
+                        Todas las categorías
+                    </option>
+
+                    @foreach ($categories as $category)
+                        <option
+                            value="{{ $category->id }}"
+                            @selected(
+                                (string) request('category')
+                                === (string) $category->id
+                            )
+                        >
+                            {{ $category->name }}
+                        </option>
+                    @endforeach
+                </select>
+
+                <select
+                    class="form-select"
+                    name="status"
+                    onchange="this.form.submit()"
+                >
+                    <option value="">
+                        Todos los estados
+                    </option>
+
+                    <option
+                        value="published"
+                        @selected(request('status') === 'published')
+                    >
+                        Publicados
+                    </option>
+
+                    <option
+                        value="draft"
+                        @selected(request('status') === 'draft')
+                    >
+                        Borradores
+                    </option>
+
+                    <option
+                        value="inactive"
+                        @selected(request('status') === 'inactive')
+                    >
+                        Archivados
+                    </option>
+                </select>
+
+                <a
+                    class="btn btn-outline-secondary"
+                    href="{{ route('knowledge.articles') }}"
+                >
+                    Limpiar
+                </a>
+
+                <a
+                    class="btn btn-outline-secondary"
+                    href="{{ route('knowledge.categories') }}"
+                >
+                    Categorías
+                </a>
+
+                <a
+                    class="btn btn-primary"
+                    href="{{ route('knowledge.articles.create') }}"
+                >
+                    <i data-lucide="plus" class="me-1"></i>
+                    Nuevo artículo
+                </a>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-custom align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Artículo</th>
+                        <th>Categorías</th>
+                        <th>Versiones</th>
+                        <th>Actualizado</th>
+                        <th>Estado</th>
+                        <th class="text-end">
+                            Acciones
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @forelse ($articles as $article)
+                        <tr>
+                            <td class="fw-semibold">
+                                {{ $article->title }}
+                            </td>
+
+                            <td>
+                                @forelse ($article->categories as $category)
+                                    <span class="badge badge-soft-primary me-1">
+                                        {{ $category->name }}
+                                    </span>
+                                @empty
+                                    —
+                                @endforelse
+                            </td>
+
+                            <td>
+                                v{{ $article->version }}
+
+                                <span class="text-muted">
+                                    ({{ $article->versions->count() }})
+                                </span>
+                            </td>
+
+                            <td>
+                                {{ $article->updated_at->format('d/m/Y') }}
+                            </td>
+
+                            <td>
+                                <span
+                                    class="badge badge-label badge-soft-{{ $article->status === 'published'
+                                        ? 'success'
+                                        : ($article->status === 'draft' ? 'primary' : 'warning') }}"
+                                >
+                                    {{ $article->status === 'published'
+                                        ? 'Publicado'
+                                        : ($article->status === 'draft' ? 'Borrador' : 'Archivado') }}
+                                </span>
+                            </td>
+
+                            <td class="text-end">
+                                <a
+                                    class="btn btn-sm btn-light"
+                                    href="{{ route('knowledge.articles.show', $article) }}"
+                                    title="Ver"
+                                >
+                                    <i data-lucide="eye"></i>
+                                </a>
+
+                                <a
+                                    class="btn btn-sm btn-light"
+                                    href="{{ route('knowledge.articles.edit', $article) }}"
+                                    title="Editar"
+                                >
+                                    <i data-lucide="pencil"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6">
+                                <div class="listing-empty">
+                                    No se encontraron artículos.
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <div class="listing-pagination px-3">
+            {{ $articles->links() }}
+        </div>
+    </div>
 </x-layouts.tenant>

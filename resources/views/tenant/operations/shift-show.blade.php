@@ -1,1 +1,70 @@
-<x-layouts.tenant title="{{ $shift->name }}" subtitle="{{ substr((string)$shift->start_time,0,5) }} – {{ substr((string)$shift->end_time,0,5) }}"><div class="d-flex justify-content-end gap-2 mb-3"><a class="btn btn-primary" href="{{ route('operations.shifts.edit',$shift) }}">Editar</a><form method="POST" action="{{ route('operations.shifts.status',$shift) }}">@csrf @method('PATCH')<button class="btn btn-outline-{{ $shift->status === 'active' ? 'warning' : 'success' }}">{{ $shift->status === 'active' ? 'Desactivar' : 'Activar' }}</button></form>@unless($inUse)<form method="POST" action="{{ route('operations.shifts.destroy',$shift) }}" onsubmit="return confirm('¿Eliminar este turno?')">@csrf @method('DELETE')<button class="btn btn-outline-danger">Eliminar</button></form>@endunless</div><div class="tr-card"><p class="mb-0">Estado: <strong>{{ $shift->status === 'active' ? 'Activo' : 'Inactivo' }}</strong></p>@if($inUse)<div class="alert alert-info mt-3 mb-0">Este turno tiene asignaciones o checklists. Solo puede desactivarse.</div>@endif</div></x-layouts.tenant>
+<x-layouts.tenant
+    :title="$shift->name"
+    :subtitle="substr((string) $shift->start_time, 0, 5)
+        . ' – '
+        . substr((string) $shift->end_time, 0, 5)"
+>
+    <div class="d-flex justify-content-end gap-2 mb-3">
+        <a
+            class="btn btn-primary"
+            href="{{ route('operations.shifts.edit', $shift) }}"
+        >
+            Editar
+        </a>
+
+        <form
+            method="POST"
+            action="{{ route('operations.shifts.status', $shift) }}"
+        >
+            @csrf
+            @method('PATCH')
+
+            <button
+                class="btn btn-outline-{{ $shift->status === 'active'
+                    ? 'warning'
+                    : 'success' }}"
+                type="submit"
+            >
+                {{ $shift->status === 'active'
+                    ? 'Desactivar'
+                    : 'Activar' }}
+            </button>
+        </form>
+
+        @unless ($inUse)
+            <form
+                method="POST"
+                action="{{ route('operations.shifts.destroy', $shift) }}"
+                onsubmit="return confirm('¿Eliminar este turno?')"
+            >
+                @csrf
+                @method('DELETE')
+
+                <button
+                    class="btn btn-outline-danger"
+                    type="submit"
+                >
+                    Eliminar
+                </button>
+            </form>
+        @endunless
+    </div>
+
+    <div class="tr-card">
+        <p class="mb-0">
+            Estado:
+            <strong>
+                {{ $shift->status === 'active'
+                    ? 'Activo'
+                    : 'Inactivo' }}
+            </strong>
+        </p>
+
+        @if ($inUse)
+            <div class="alert alert-info mt-3 mb-0">
+                Este turno tiene asignaciones o checklists.
+                Solo puede desactivarse.
+            </div>
+        @endif
+    </div>
+</x-layouts.tenant>

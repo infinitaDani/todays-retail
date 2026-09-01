@@ -1,20 +1,433 @@
 @php
-    $statusLabels = ['in_progress' => 'En curso', 'due_soon' => 'Por vencer', 'overdue' => 'Atrasada', 'completed_on_time' => 'Completada a tiempo', 'completed_late' => 'Completada tarde'];
-    $statusColors = ['in_progress' => 'primary', 'due_soon' => 'warning', 'overdue' => 'danger', 'completed_on_time' => 'success', 'completed_late' => 'secondary'];
+    $statusLabels = [
+        'in_progress' => 'En curso',
+        'due_soon' => 'Por vencer',
+        'overdue' => 'Atrasada',
+        'completed_on_time' => 'Completada a tiempo',
+        'completed_late' => 'Completada tarde',
+    ];
+
+    $statusColors = [
+        'in_progress' => 'primary',
+        'due_soon' => 'warning',
+        'overdue' => 'danger',
+        'completed_on_time' => 'success',
+        'completed_late' => 'secondary',
+    ];
+
     $filters = request()->query();
-    $previous = \Illuminate\Support\Carbon::parse($date)->subDay()->toDateString();
-    $next = \Illuminate\Support\Carbon::parse($date)->addDay()->toDateString();
-    $timelineStart = $timeline['start']; $timelineEnd = $timeline['end']; $hasAccountWideScope = ($scope['is_account_administrator'] ?? false) || $scope['role'] === 'management';
-    $startMinutes = $timelineStart ? ((int) substr($timelineStart, 0, 2) * 60 + (int) substr($timelineStart, 3, 2)) : 0;
-    $endMinutes = $timelineEnd ? ((int) substr($timelineEnd, 0, 2) * 60 + (int) substr($timelineEnd, 3, 2)) : 0;
-    $totalMinutes = max(1, $endMinutes - $startMinutes);
+
+    $previous = \Illuminate\Support\Carbon::parse($date)
+        ->subDay()
+        ->toDateString();
+
+    $next = \Illuminate\Support\Carbon::parse($date)
+        ->addDay()
+        ->toDateString();
+
+    $timelineStart = $timeline['start'];
+    $timelineEnd = $timeline['end'];
+
+    $hasAccountWideScope =
+        ($scope['is_account_administrator'] ?? false)
+        || $scope['role'] === 'management';
+
+    $startMinutes = $timelineStart
+        ? (
+            (int) substr($timelineStart, 0, 2) * 60
+            + (int) substr($timelineStart, 3, 2)
+        )
+        : 0;
+
+    $endMinutes = $timelineEnd
+        ? (
+            (int) substr($timelineEnd, 0, 2) * 60
+            + (int) substr($timelineEnd, 3, 2)
+        )
+        : 0;
+
+    $totalMinutes = max(
+        1,
+        $endMinutes - $startMinutes
+    );
 @endphp
-<x-layouts.tenant title="{{ $supervisionMode ? 'Supervisión de tareas' : 'Mis tareas' }}" subtitle="{{ $supervisionMode ? 'Vista operativa de toda la cuenta; no estás registrado como colaborador.' : 'Operación diaria y cumplimiento' }}">
-    @if($supervisionMode)<div class="alert alert-info"><i data-lucide="eye" class="me-1"></i> Estás en modo supervisión. Puedes consultar la operación de la cuenta, pero no completar tareas de otras personas.</div>@endif
-    <div class="tr-card mb-3"><form class="row g-3 align-items-end" method="GET"><div class="col-md-3"><label class="form-label">Fecha</label><div class="input-group"><a class="btn btn-light" href="{{ route('operations.my-tasks', array_merge($filters, ['date' => $previous])) }}" title="Día anterior"><i data-lucide="chevron-left"></i></a><input class="form-control" name="date" type="date" value="{{ $date }}"><a class="btn btn-light" href="{{ route('operations.my-tasks', array_merge($filters, ['date' => $next])) }}" title="Día siguiente"><i data-lucide="chevron-right"></i></a></div></div>@if($hasAccountWideScope)<div class="col-md-3"><label class="form-label">Sucursal</label><select class="form-select" name="branch_id"><option value="">Todas las sucursales</option>@foreach($branches as $branch)<option value="{{ $branch->id }}" @selected((int)$branchId === $branch->id)>{{ $branch->name }}</option>@endforeach</select></div>@endif
-	@if($scope['role'] !== 'advisor')	
-	<div class="col-md-3"><label class="form-label">Colaborador</label><select class="form-select" name="core_user_id"><option value="">Todos los colaboradores</option>@foreach($users as $user)<option value="{{ $user->id }}" @selected((int)$userId === $user->id)>{{ $user->name }}</option>@endforeach</select></div>@endif<div class="col-md-auto"><button class="btn btn-primary">Ver día</button><a class="btn btn-outline-secondary ms-1" href="{{ route('operations.my-tasks', ['date' => now()->toDateString()]) }}">Hoy</a></div></form></div>
-    <div class="tr-card mb-3"><div class="d-flex justify-content-between align-items-center mb-3"><div><h5 class="mb-1">Timeline del día</h5><p class="text-muted small mb-0">{{ $timelineStart && $timelineEnd ? $timelineStart.' – '.$timelineEnd : 'No hay rangos horarios planificados.' }}</p></div><span class="badge badge-soft-primary">{{ \Illuminate\Support\Carbon::parse($date)->translatedFormat('l, d M') }}</span></div>@if($timelineStart && $timelineEnd)<div class="daily-timeline">@foreach($tasks as $task)@php($taskStart = ((int)substr((string)$task->scheduled_start,0,2)*60+(int)substr((string)$task->scheduled_start,3,2)))@php($taskEnd = ((int)substr((string)$task->scheduled_end,0,2)*60+(int)substr((string)$task->scheduled_end,3,2)))@php($left = max(0, ($taskStart-$startMinutes)*100/$totalMinutes))@php($width = max(8, ($taskEnd-$taskStart)*100/$totalMinutes))<div class="daily-timeline-block" style="left: {{ $left }}%; width: {{ $width }}%;"><strong>{{ $task->task_name_snapshot }}</strong><span>{{ substr((string)$task->scheduled_start,0,5) }}–{{ substr((string)$task->scheduled_end,0,5) }}</span></div>@endforeach</div>@else<div class="listing-empty">No hay tareas planificadas para este día.</div>@endif</div>
-    <div class="row g-3"><div class="col-lg-8"><div class="tr-card"><h5 class="mb-3">Tareas</h5><div class="daily-task-list">@forelse($tasks as $task)@php($status = $task->status(now())->value)@php($user = $users->get($task->core_user_id))<div class="daily-task-card"><div class="daily-task-time">{{ substr((string)$task->scheduled_start,0,5) }}</div><div class="flex-grow-1"><div class="d-flex justify-content-between gap-2"><strong>{{ $task->task_name_snapshot }}</strong><span class="badge badge-label badge-soft-{{ $statusColors[$status] }}">{{ $statusLabels[$status] }}</span></div><div class="text-muted small mt-1">{{ substr((string)$task->scheduled_start,0,5) }} – {{ substr((string)$task->scheduled_end,0,5) }} · {{ $task->checklist_name_snapshot }}</div>@if($scope['role'] !== 'advisor')<div class="text-muted small">{{ $user?->name ?? 'Colaborador' }}</div>@endif</div><div class="text-end">@unless($task->completed_at)@if($canCompleteOwnTasks && (!$supervisionMode || $task->core_user_id === auth()->id()))<form method="POST" action="{{ route('operations.my-tasks.complete',$task) }}">@csrf<button class="btn btn-sm btn-primary">Completar tarea</button></form>@endif@else<span class="text-success small"><i data-lucide="check-circle-2" class="me-1"></i>Completada</span>@endunless</div></div>@empty<div class="listing-empty">No hay tareas para los filtros seleccionados.</div>@endforelse</div></div></div><div class="col-lg-4"><div class="tr-card h-100"><h5 class="mb-3">Performance</h5><div class="performance-score">{{ $performance['completion_rate'] }}<small>%</small></div><div class="text-center text-muted small mb-4">Cumplimiento</div><dl class="row mb-0"><dt class="col-8">Completadas</dt><dd class="col-4 text-end">{{ $performance['completed'] }}/{{ $performance['total'] }}</dd><dt class="col-8">A tiempo</dt><dd class="col-4 text-end">{{ $performance['on_time'] }}</dd><dt class="col-8">Tarde</dt><dd class="col-4 text-end">{{ $performance['late'] }}</dd><dt class="col-8">% a tiempo</dt><dd class="col-4 text-end">{{ $performance['on_time_rate'] }}%</dd></dl></div></div></div>
-    @if($tasks->contains(fn($task) => $task->supportArticles->isNotEmpty()))<div class="tr-card mt-3"><h5 class="mb-3"><i data-lucide="book-open" class="me-1"></i>Material de apoyo</h5>@foreach($tasks->filter(fn($task) => $task->supportArticles->isNotEmpty()) as $task)<div class="border-top py-2"><div class="small fw-semibold mb-1">{{ $task->task_name_snapshot }} <i data-lucide="book-open" title="Tiene material de apoyo"></i></div>@foreach($task->supportArticles as $article)<a class="btn btn-sm btn-light me-1" href="{{ route('knowledge.read',$article) }}"><i data-lucide="book-open" class="me-1"></i>{{ $article->title }}</a>@endforeach</div>@endforeach</div>@endif
+
+<x-layouts.tenant
+    :title="$supervisionMode ? 'Supervisión de tareas' : 'Mis tareas'"
+    :subtitle="$supervisionMode
+        ? 'Vista operativa de toda la cuenta; no estás registrado como colaborador.'
+        : 'Operación diaria y cumplimiento'"
+>
+    @if ($supervisionMode)
+        <div class="alert alert-info">
+            <i data-lucide="eye" class="me-1"></i>
+            Estás en modo supervisión.
+            Puedes consultar la operación de la cuenta,
+            pero no completar tareas de otras personas.
+        </div>
+    @endif
+
+    <div class="tr-card mb-3">
+        <form
+            class="row g-3 align-items-end"
+            method="GET"
+        >
+            <div class="col-md-3">
+                <label class="form-label">
+                    Fecha
+                </label>
+
+                <div class="input-group">
+                    <a
+                        class="btn btn-light"
+                        href="{{ route(
+                            'operations.my-tasks',
+                            array_merge($filters, ['date' => $previous])
+                        ) }}"
+                        title="Día anterior"
+                    >
+                        <i data-lucide="chevron-left"></i>
+                    </a>
+
+                    <input
+                        class="form-control"
+                        name="date"
+                        type="date"
+                        value="{{ $date }}"
+                    >
+
+                    <a
+                        class="btn btn-light"
+                        href="{{ route(
+                            'operations.my-tasks',
+                            array_merge($filters, ['date' => $next])
+                        ) }}"
+                        title="Día siguiente"
+                    >
+                        <i data-lucide="chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            @if ($hasAccountWideScope)
+                <div class="col-md-3">
+                    <label class="form-label">
+                        Sucursal
+                    </label>
+
+                    <select
+                        class="form-select"
+                        name="branch_id"
+                    >
+                        <option value="">
+                            Todas las sucursales
+                        </option>
+
+                        @foreach ($branches as $branch)
+                            <option
+                                value="{{ $branch->id }}"
+                                @selected((int) $branchId === $branch->id)
+                            >
+                                {{ $branch->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
+
+            @if ($scope['role'] !== 'advisor')
+                <div class="col-md-3">
+                    <label class="form-label">
+                        Colaborador
+                    </label>
+
+                    <select
+                        class="form-select"
+                        name="core_user_id"
+                    >
+                        <option value="">
+                            Todos los colaboradores
+                        </option>
+
+                        @foreach ($users as $user)
+                            <option
+                                value="{{ $user->id }}"
+                                @selected((int) $userId === $user->id)
+                            >
+                                {{ $user->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
+
+            <div class="col-md-auto">
+                <button
+                    class="btn btn-primary"
+                    type="submit"
+                >
+                    Ver día
+                </button>
+
+                <a
+                    class="btn btn-outline-secondary ms-1"
+                    href="{{ route(
+                        'operations.my-tasks',
+                        ['date' => now()->toDateString()]
+                    ) }}"
+                >
+                    Hoy
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="tr-card mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="mb-1">
+                    Timeline del día
+                </h5>
+
+                <p class="text-muted small mb-0">
+                    {{ $timelineStart && $timelineEnd
+                        ? $timelineStart . ' – ' . $timelineEnd
+                        : 'No hay rangos horarios planificados.' }}
+                </p>
+            </div>
+
+            <span class="badge badge-soft-primary">
+                {{ \Illuminate\Support\Carbon::parse($date)
+                    ->translatedFormat('l, d M') }}
+            </span>
+        </div>
+
+        @if ($timelineStart && $timelineEnd)
+            <div class="daily-timeline">
+                @foreach ($tasks as $task)
+                    @php
+                        $taskStart =
+                            (int) substr((string) $task->scheduled_start, 0, 2) * 60
+                            + (int) substr((string) $task->scheduled_start, 3, 2);
+
+                        $taskEnd =
+                            (int) substr((string) $task->scheduled_end, 0, 2) * 60
+                            + (int) substr((string) $task->scheduled_end, 3, 2);
+
+                        $left = max(
+                            0,
+                            ($taskStart - $startMinutes) * 100 / $totalMinutes
+                        );
+
+                        $width = max(
+                            8,
+                            ($taskEnd - $taskStart) * 100 / $totalMinutes
+                        );
+                    @endphp
+
+                    <div
+                        class="daily-timeline-block"
+                        style="left: {{ $left }}%; width: {{ $width }}%;"
+                    >
+                        <strong>
+                            {{ $task->task_name_snapshot }}
+                        </strong>
+
+                        <span>
+                            {{ substr((string) $task->scheduled_start, 0, 5) }}
+                            –
+                            {{ substr((string) $task->scheduled_end, 0, 5) }}
+                        </span>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <div class="listing-empty">
+                No hay tareas planificadas para este día.
+            </div>
+        @endif
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="tr-card">
+                <h5 class="mb-3">
+                    Tareas
+                </h5>
+
+                <div class="daily-task-list">
+                    @forelse ($tasks as $task)
+                        @php
+                            $status = $task->status(now())->value;
+                            $user = $users->get($task->core_user_id);
+                        @endphp
+
+                        <div class="daily-task-card">
+                            <div class="daily-task-time">
+                                {{ substr((string) $task->scheduled_start, 0, 5) }}
+                            </div>
+
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between gap-2">
+                                    <strong>
+                                        {{ $task->task_name_snapshot }}
+                                    </strong>
+
+                                    <span
+                                        class="badge badge-label badge-soft-{{ $statusColors[$status] }}"
+                                    >
+                                        {{ $statusLabels[$status] }}
+                                    </span>
+                                </div>
+
+                                <div class="text-muted small mt-1">
+                                    {{ substr((string) $task->scheduled_start, 0, 5) }}
+                                    –
+                                    {{ substr((string) $task->scheduled_end, 0, 5) }}
+                                    ·
+                                    {{ $task->checklist_name_snapshot }}
+                                </div>
+
+                                @if ($scope['role'] !== 'advisor')
+                                    <div class="text-muted small">
+                                        {{ $user?->name ?? 'Colaborador' }}
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div class="text-end">
+                                @unless ($task->completed_at)
+                                    @if (
+                                        $canCompleteOwnTasks
+                                        && (
+                                            ! $supervisionMode
+                                            || $task->core_user_id === auth()->id()
+                                        )
+                                    )
+                                        <form
+                                            method="POST"
+                                            action="{{ route(
+                                                'operations.my-tasks.complete',
+                                                $task
+                                            ) }}"
+                                        >
+                                            @csrf
+
+                                            <button
+                                                class="btn btn-sm btn-primary"
+                                                type="submit"
+                                            >
+                                                Completar tarea
+                                            </button>
+                                        </form>
+                                    @endif
+                                @else
+                                    <span class="text-success small">
+                                        <i
+                                            data-lucide="check-circle-2"
+                                            class="me-1"
+                                        ></i>
+                                        Completada
+                                    </span>
+                                @endunless
+                            </div>
+                        </div>
+                    @empty
+                        <div class="listing-empty">
+                            No hay tareas para los filtros seleccionados.
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="tr-card h-100">
+                <h5 class="mb-3">
+                    Performance
+                </h5>
+
+                <div class="performance-score">
+                    {{ $performance['completion_rate'] }}
+                    <small>%</small>
+                </div>
+
+                <div class="text-center text-muted small mb-4">
+                    Cumplimiento
+                </div>
+
+                <dl class="row mb-0">
+                    <dt class="col-8">
+                        Completadas
+                    </dt>
+
+                    <dd class="col-4 text-end">
+                        {{ $performance['completed'] }}/{{ $performance['total'] }}
+                    </dd>
+
+                    <dt class="col-8">
+                        A tiempo
+                    </dt>
+
+                    <dd class="col-4 text-end">
+                        {{ $performance['on_time'] }}
+                    </dd>
+
+                    <dt class="col-8">
+                        Tarde
+                    </dt>
+
+                    <dd class="col-4 text-end">
+                        {{ $performance['late'] }}
+                    </dd>
+
+                    <dt class="col-8">
+                        % a tiempo
+                    </dt>
+
+                    <dd class="col-4 text-end">
+                        {{ $performance['on_time_rate'] }}%
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    @if ($tasks->contains(
+        fn ($task) => $task->supportArticles->isNotEmpty()
+    ))
+        <div class="tr-card mt-3">
+            <h5 class="mb-3">
+                <i data-lucide="book-open" class="me-1"></i>
+                Material de apoyo
+            </h5>
+
+            @foreach (
+                $tasks->filter(
+                    fn ($task) => $task->supportArticles->isNotEmpty()
+                ) as $task
+            )
+                <div class="border-top py-2">
+                    <div class="small fw-semibold mb-1">
+                        {{ $task->task_name_snapshot }}
+
+                        <i
+                            data-lucide="book-open"
+                            title="Tiene material de apoyo"
+                        ></i>
+                    </div>
+
+                    @foreach ($task->supportArticles as $article)
+                        <a
+                            class="btn btn-sm btn-light me-1"
+                            href="{{ route('knowledge.read', $article) }}"
+                        >
+                            <i data-lucide="book-open" class="me-1"></i>
+                            {{ $article->title }}
+                        </a>
+                    @endforeach
+                </div>
+            @endforeach
+        </div>
+    @endif
 </x-layouts.tenant>

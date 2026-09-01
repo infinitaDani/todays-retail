@@ -1,1 +1,112 @@
-<x-layouts.tenant title="{{ $checklist->name }}" subtitle="{{ $checklist->shifts->pluck('name')->join(', ') }}"><div class="d-flex justify-content-end gap-2 mb-3"><a class="btn btn-primary" href="{{ route('checklists.edit',$checklist) }}">Editar</a><form method="POST" action="{{ route('checklists.status',$checklist) }}">@csrf @method('PATCH')<button class="btn btn-outline-{{ $checklist->status === 'active' ? 'warning' : 'success' }}">{{ $checklist->status === 'active' ? 'Desactivar' : 'Activar' }}</button></form>@unless($inUse)<form method="POST" action="{{ route('checklists.destroy',$checklist) }}" onsubmit="return confirm('¿Eliminar este checklist?')">@csrf @method('DELETE')<button class="btn btn-outline-danger">Eliminar</button></form>@endunless</div><div class="tr-card mb-3"><h5>Descripción</h5><p class="mb-0">{{ $checklist->description ?: 'Sin descripción.' }}</p>@if($inUse)<div class="alert alert-info mt-3 mb-0">Este checklist ya tiene historial o está en uso. Crea un nuevo checklist y desactiva este.</div>@endif</div><div class="tr-card"><h5 class="mb-3">Tareas</h5><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Tarea</th><th>Inicio</th><th>Hora límite</th></tr></thead><tbody>@forelse($checklist->items as $item)<tr><td>{{ $item->task->name }}</td><td>{{ substr((string)$item->start_time,0,5) }}</td><td>{{ substr((string)$item->due_time,0,5) }}</td></tr>@empty<tr><td colspan="3" class="text-muted">Este checklist no tiene tareas.</td></tr>@endforelse</tbody></table></div></div></x-layouts.tenant>
+<x-layouts.tenant
+    :title="$checklist->name"
+    :subtitle="$checklist->shifts->pluck('name')->join(', ')"
+>
+    <div class="d-flex justify-content-end gap-2 mb-3">
+        <a
+            class="btn btn-primary"
+            href="{{ route('checklists.edit', $checklist) }}"
+        >
+            Editar
+        </a>
+
+        <form
+            method="POST"
+            action="{{ route('checklists.status', $checklist) }}"
+        >
+            @csrf
+            @method('PATCH')
+
+            <button
+                class="btn btn-outline-{{ $checklist->status === 'active'
+                    ? 'warning'
+                    : 'success' }}"
+                type="submit"
+            >
+                {{ $checklist->status === 'active'
+                    ? 'Desactivar'
+                    : 'Activar' }}
+            </button>
+        </form>
+
+        @unless ($inUse)
+            <form
+                method="POST"
+                action="{{ route('checklists.destroy', $checklist) }}"
+                onsubmit="return confirm('¿Eliminar este checklist?')"
+            >
+                @csrf
+                @method('DELETE')
+
+                <button
+                    class="btn btn-outline-danger"
+                    type="submit"
+                >
+                    Eliminar
+                </button>
+            </form>
+        @endunless
+    </div>
+
+    <div class="tr-card mb-3">
+        <h5>
+            Descripción
+        </h5>
+
+        <p class="mb-0">
+            {{ $checklist->description ?: 'Sin descripción.' }}
+        </p>
+
+        @if ($inUse)
+            <div class="alert alert-info mt-3 mb-0">
+                Este checklist ya tiene historial o está en uso.
+                Crea un nuevo checklist y desactiva este.
+            </div>
+        @endif
+    </div>
+
+    <div class="tr-card">
+        <h5 class="mb-3">
+            Tareas
+        </h5>
+
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Tarea</th>
+                        <th>Inicio</th>
+                        <th>Hora límite</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @forelse ($checklist->items as $item)
+                        <tr>
+                            <td>
+                                {{ $item->task->name }}
+                            </td>
+
+                            <td>
+                                {{ substr((string) $item->start_time, 0, 5) }}
+                            </td>
+
+                            <td>
+                                {{ substr((string) $item->due_time, 0, 5) }}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td
+                                colspan="3"
+                                class="text-muted"
+                            >
+                                Este checklist no tiene tareas.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+</x-layouts.tenant>

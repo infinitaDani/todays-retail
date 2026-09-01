@@ -1,1 +1,136 @@
-<x-layouts.tenant title="{{ $article->title }}" subtitle="Knowledge Center"><nav class="mb-3"><a href="{{ route('knowledge.center') }}" class="text-decoration-none">Knowledge Center</a><span class="mx-2 text-muted">/</span>@foreach($article->categories as $category)<span>{{ $category->name }}{{ !$loop->last ? ', ' : '' }}</span>@endforeach</nav><div class="row justify-content-center"><div class="col-xl-9"><article class="tr-card"><div class="d-flex justify-content-between align-items-start mb-4"><div><div class="mb-2">@foreach($article->categories as $category)<span class="badge badge-soft-primary me-1">{{ $category->name }}</span>@endforeach</div><small class="text-muted">Versión {{ $version->version_number }} · Actualizada {{ $version->published_at?->format('d/m/Y') }}</small></div>@if($reading->confirmed_at)<span class="badge badge-soft-success"><i data-lucide="check"></i> Lectura confirmada</span>@elseif($reading->first_opened_at)<span class="badge badge-soft-warning">Abierto</span>@endif</div><div class="article-reading">{!! nl2br(e($version->content)) !!}</div>@if($version->requires_confirmation)<hr class="my-4">@if($reading->confirmed_at)<div class="alert alert-success mb-0">Confirmaste la lectura el {{ $reading->confirmed_at->format('d/m/Y H:i') }}.</div>@else<form method="POST" action="{{ route('knowledge.versions.confirm',$version) }}">@csrf<button class="btn btn-primary"><i data-lucide="check-circle"></i> Confirmar lectura</button></form>@endif@endif</article></div></div>@push('page-scripts')<script>(()=>{let active=true,last=Date.now(),token=document.querySelector('meta[name="csrf-token"]').content;document.addEventListener('visibilitychange',()=>{active=!document.hidden;last=Date.now()});setInterval(()=>{let now=Date.now(),seconds=Math.min(120,Math.floor((now-last)/1000));last=now;if(active&&seconds>0)fetch('{{ route('knowledge.versions.heartbeat',$version) }}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':token,'Accept':'application/json'},body:JSON.stringify({seconds})});},30000)})();</script>@endpush</x-layouts.tenant>
+<x-layouts.tenant
+    :title="$article->title"
+    subtitle="Knowledge Center"
+>
+    <nav class="mb-3">
+        <a
+            href="{{ route('knowledge.center') }}"
+            class="text-decoration-none"
+        >
+            Knowledge Center
+        </a>
+
+        <span class="mx-2 text-muted">
+            /
+        </span>
+
+        @foreach ($article->categories as $category)
+            <span>
+                {{ $category->name }}{{ ! $loop->last ? ', ' : '' }}
+            </span>
+        @endforeach
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-xl-9">
+            <article class="tr-card">
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div>
+                        <div class="mb-2">
+                            @foreach ($article->categories as $category)
+                                <span class="badge badge-soft-primary me-1">
+                                    {{ $category->name }}
+                                </span>
+                            @endforeach
+                        </div>
+
+                        <small class="text-muted">
+                            Versión {{ $version->version_number }}
+                            ·
+                            Actualizada {{ $version->published_at?->format('d/m/Y') }}
+                        </small>
+                    </div>
+
+                    @if ($reading->confirmed_at)
+                        <span class="badge badge-soft-success">
+                            <i data-lucide="check"></i>
+                            Lectura confirmada
+                        </span>
+                    @elseif ($reading->first_opened_at)
+                        <span class="badge badge-soft-warning">
+                            Abierto
+                        </span>
+                    @endif
+                </div>
+
+                <div class="article-reading">
+                    {!! nl2br(e($version->content)) !!}
+                </div>
+
+                @if ($version->requires_confirmation)
+                    <hr class="my-4">
+
+                    @if ($reading->confirmed_at)
+                        <div class="alert alert-success mb-0">
+                            Confirmaste la lectura el
+                            {{ $reading->confirmed_at->format('d/m/Y H:i') }}.
+                        </div>
+                    @else
+                        <form
+                            method="POST"
+                            action="{{ route('knowledge.versions.confirm', $version) }}"
+                        >
+                            @csrf
+
+                            <button
+                                class="btn btn-primary"
+                                type="submit"
+                            >
+                                <i data-lucide="check-circle"></i>
+                                Confirmar lectura
+                            </button>
+                        </form>
+                    @endif
+                @endif
+            </article>
+        </div>
+    </div>
+
+    @push('page-scripts')
+        <script>
+            (() => {
+                let active = true;
+                let lastActivityAt = Date.now();
+
+                const csrfToken = document
+                    .querySelector('meta[name="csrf-token"]')
+                    .content;
+
+                document.addEventListener('visibilitychange', () => {
+                    active = !document.hidden;
+                    lastActivityAt = Date.now();
+                });
+
+                setInterval(() => {
+                    const now = Date.now();
+
+                    const seconds = Math.min(
+                        120,
+                        Math.floor((now - lastActivityAt) / 1000)
+                    );
+
+                    lastActivityAt = now;
+
+                    if (!active || seconds <= 0) {
+                        return;
+                    }
+
+                    fetch(
+                        '{{ route('knowledge.versions.heartbeat', $version) }}',
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                seconds,
+                            }),
+                        }
+                    );
+                }, 30000);
+            })();
+        </script>
+    @endpush
+</x-layouts.tenant>
