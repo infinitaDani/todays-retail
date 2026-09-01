@@ -47,6 +47,63 @@
             </form>
         </div>
     </div>
+	@php
+    $errorRows = array_values(
+        array_filter(
+            $rows,
+            fn (array $row): bool => ($row['status'] ?? null) === 'error'
+        )
+    );
+	@endphp
+
+	@if ($errorRows !== [])
+		<div class="alert alert-danger mb-3">
+			<div class="fw-semibold mb-1">
+				Se encontraron {{ count($errorRows) }} registros con errores.
+			</div>
+			<div>
+				Estos registros no serán importados. Revisa el detalle antes de continuar.
+			</div>
+		</div>
+
+		<div class="tr-card p-0 overflow-hidden mb-3">
+			<div class="p-3 border-bottom">
+				<h5 class="mb-0">Errores detectados</h5>
+			</div>
+
+			<div class="table-responsive">
+				<table class="table table-custom align-middle mb-0">
+					<thead>
+						<tr>
+							<th>Fila</th>
+							<th>Código</th>
+							<th>Código catálogo</th>
+							<th>Nombre</th>
+							<th>Motivo</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach ($errorRows as $row)
+							<tr>
+								<td>{{ $row['row_number'] }}</td>
+								<td>{{ $row['sku'] ?: '—' }}</td>
+								<td>{{ $row['catalog_code'] ?: '—' }}</td>
+								<td>{{ $row['name'] ?: '—' }}</td>
+								<td>
+									@if (($row['messages'] ?? []) !== [])
+										{{ implode(' ', $row['messages']) }}
+									@else
+										Error sin detalle.
+									@endif
+								</td>
+							</tr>
+						@endforeach
+					</tbody>
+				</table>
+			</div>
+		</div>
+	@endif
+
 
     <div class="tr-card p-0 overflow-hidden">
         <div class="table-responsive">
