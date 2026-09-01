@@ -142,7 +142,7 @@
                                     @if ($canAdministerSchedule)
                                         <li>
                                             <a class="side-nav-link {{ request()->routeIs('operations.planner') ? 'active' : '' }}" href="{{ route('operations.planner') }}">
-                                                <span>Planificar</span>
+                                                <span>Planificación</span>
                                             </a>
                                         </li>
                                         <li>
@@ -150,6 +150,11 @@
                                                 <span>Calendario</span>
                                             </a>
                                         </li>
+										<li>
+											<a class="side-nav-link {{ request()->routeIs('operations.my-tasks') ? 'active' : '' }}" href="{{ route('operations.my-tasks') }}">
+												<span>Mis tareas</span>
+											</a>
+										</li>
                                         <li>
                                             <a class="side-nav-link {{ request()->routeIs('operations.shifts') ? 'active' : '' }}" href="{{ route('operations.shifts') }}">
                                                 <span>Turnos</span>
@@ -170,15 +175,10 @@
                                                 class="side-nav-link {{ request()->routeIs('operations.schedule.report') ? 'active' : '' }}"
                                                 href="{{ route('operations.schedule.report') }}"
                                             >
-                                                <span>Reporte de jornada</span>
+                                                <span>Reporte de Jornada</span>
                                             </a>
                                         </li>
                                     @endif
-                                    <li>
-                                        <a class="side-nav-link {{ request()->routeIs('operations.my-tasks') ? 'active' : '' }}" href="{{ route('operations.my-tasks') }}">
-                                            <span>Mis tareas</span>
-                                        </a>
-                                    </li>
                                 </ul>
                             </li>
                         </ul>
@@ -215,24 +215,38 @@
                     @if ($canOperateTenant)
                         <p class="sidebar-heading">Knowledge</p>
                         <ul class="side-nav">
-                            <li class="side-nav-item">
-                                <a class="side-nav-link {{ request()->routeIs('knowledge.center', 'knowledge.read') ? 'active' : '' }}" href="{{ route('knowledge.center') }}">
-                                    <i data-lucide="book-open"></i>
-                                    <span>Knowledge Center</span>
-                                </a>
-                            </li>
-                            @if ($canManageTenant)
-                                <li class="side-nav-item">
-                                    <a
-                                        class="side-nav-link {{ request()->routeIs('knowledge.articles*', 'knowledge.categories*') ? 'active' : '' }}"
-                                        href="{{ route('knowledge.articles') }}"
-                                    >
-                                        <i data-lucide="settings-2"></i>
-                                        <span>Administrar Knowledge</span>
-                                    </a>
-                                </li>
-                            @endif
-                        </ul>
+							<li class="side-nav-item">
+								<a
+									class="side-nav-link {{ request()->routeIs('knowledge.center', 'knowledge.read') ? 'active' : '' }}"
+									href="{{ route('knowledge.center') }}"
+								>
+									<i data-lucide="book-open"></i>
+									<span>Knowledge Center</span>
+								</a>
+							</li>
+
+							@if ($canManageTenant)
+								<li class="side-nav-item">
+									<a
+										class="side-nav-link {{ request()->routeIs('knowledge.articles*') ? 'active' : '' }}"
+										href="{{ route('knowledge.articles') }}"
+									>
+										<i data-lucide="settings-2"></i>
+										<span>Administrar Knowledge</span>
+									</a>
+								</li>
+
+								<li class="side-nav-item">
+									<a
+										class="side-nav-link {{ request()->routeIs('knowledge.categories*') ? 'active' : '' }}"
+										href="{{ route('knowledge.categories') }}"
+									>
+										<i data-lucide="folder-tree"></i>
+										<span>Categorías</span>
+									</a>
+								</li>
+							@endif
+						</ul>
 
                         <p class="sidebar-heading">Productos</p>
                         <ul class="side-nav">
