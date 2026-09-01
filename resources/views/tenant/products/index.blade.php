@@ -115,18 +115,14 @@
                 <thead>
                     <tr>
                         <th></th>
-                        <th>Código catálogo</th>
+                        <th>Imagen</th>
+                        <th>Código</th>
                         <th>Producto</th>
-                        <th>Tipo</th>
-                        <th>Categoría</th>
-                        @if ($settings->manages_collections)
-                            <th>Colección</th>
-                        @endif
-                        @if ($settings->manages_collection_lines)
-                            <th>Línea</th>
-                        @endif
-                        <th>Variantes</th>
+                        <th>PVP + IVA</th>
                         <th>Stock</th>
+                        <th>Categoría</th>
+                        <th>Cód. Gral</th>
+                        <th>Línea</th>
                         <th>Estado</th>
                         <th></th>
                     </tr>
@@ -137,18 +133,92 @@
                             <td>
                                 <input form="bulk-form" type="checkbox" name="product_ids[]" value="{{ $product->id }}">
                             </td>
-                            <td>{{ $product->catalog_code ?: '—' }}</td>
+                            <td>
+                                @if ($product->catalogImage)
+                                    <img
+                                        src="{{ route('products.images.show', [$product, $product->catalogImage]) }}"
+                                        alt="{{ $product->catalogImage->alt_text ?: $product->name }}"
+                                        width="52"
+                                        height="52"
+                                        class="rounded border object-fit-cover"
+                                        loading="lazy"
+                                    >
+                                @else
+                                    <span
+                                        class="d-inline-flex align-items-center justify-content-center rounded border bg-light text-muted"
+                                        style="width: 52px; height: 52px;"
+                                        aria-label="Producto sin imagen"
+                                    >
+                                        <i data-lucide="image-off"></i>
+                                    </span>
+                                @endif
+                            </td>
+                            <td>
+                                @php
+                                    $variantRows = collect($product->catalog_variant_rows);
+                                    $firstVariant = $variantRows->first();
+                                    $additionalVariants = max(0, $variantRows->count() - 1);
+                                @endphp
+
+                                @if ($firstVariant)
+                                    <div class="text-nowrap">
+                                        <span class="fw-semibold">{{ $firstVariant['sku'] }}</span>
+                                        <span class="text-muted">
+                                            · {{ $firstVariant['size'] ?: '—' }}
+                                        </span>
+                                    </div>
+
+                                    @if ($additionalVariants > 0)
+                                        <button
+                                            class="btn btn-sm btn-link p-0 text-decoration-none"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#product-variants-{{ $product->id }}"
+                                            aria-expanded="false"
+                                            aria-controls="product-variants-{{ $product->id }}"
+                                        >
+                                            +{{ $additionalVariants }}
+                                        </button>
+
+                                        <div
+                                            class="collapse mt-2"
+                                            id="product-variants-{{ $product->id }}"
+                                        >
+                                            <div class="small border-start ps-2">
+                                                @foreach ($variantRows as $variantRow)
+                                                    <div class="text-nowrap">
+                                                        {{ $variantRow['sku'] }}
+                                                        <span class="text-muted">
+                                                            · {{ $variantRow['size'] ?: '—' }}
+                                                        </span>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
                             <td class="fw-semibold">{{ $product->name }}</td>
-                            <td>{{ $product->type?->name ?: '—' }}</td>
+                            <td class="text-nowrap">{{ $product->catalog_price_display }}</td>
+                            <td>
+                                <button
+                                    class="btn btn-sm btn-light text-start"
+                                    type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#product-stock-{{ $product->id }}"
+                                    aria-expanded="false"
+                                    aria-controls="product-stock-{{ $product->id }}"
+                                >
+                                    <strong class="d-block">{{ $product->catalog_stock_total }}</strong>
+                                    <span class="small text-muted">Total</span>
+                                    <i data-lucide="chevron-down"></i>
+                                </button>
+                            </td>
                             <td>{{ $product->category?->name ?: '—' }}</td>
-                            @if ($settings->manages_collections)
-                                <td>{{ $product->collection?->name ?: '—' }}</td>
-                            @endif
-                            @if ($settings->manages_collection_lines)
-                                <td>{{ $product->line?->name ?: '—' }}</td>
-                            @endif
-                            <td>{{ $product->variants_count }}</td>
-                            <td>{{ $product->operational_stock_total ?? 0 }}</td>
+                            <td>{{ $product->catalog_code ?: '—' }}</td>
+                            <td>{{ $product->line?->name ?: '—' }}</td>
                             <td>
                                 <span class="badge badge-soft-{{ $product->is_active ? 'success' : 'warning' }}">
                                     {{ $product->is_active ? 'Activo' : 'Inactivo' }}
@@ -158,6 +228,48 @@
                                 <a class="btn btn-sm btn-light" href="{{ route('products.show', $product) }}">
                                     <i data-lucide="eye"></i>
                                 </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="p-0 border-0" colspan="11">
+                                <div
+                                    class="collapse"
+                                    id="product-stock-{{ $product->id }}"
+                                >
+                                    <div class="bg-light border-top border-bottom p-3">
+                                        <div class="row g-3">
+                                            @forelse ($product->catalog_stock_rows as $branchStock)
+                                                <div class="col-md-6 col-xl-4">
+                                                    <div class="border rounded bg-white p-3 h-100">
+                                                        <div class="d-flex justify-content-between gap-3 fw-semibold mb-2">
+                                                            <span>{{ $branchStock['name'] }}</span>
+                                                            <span>{{ $branchStock['quantity'] }}</span>
+                                                        </div>
+
+                                                        @foreach ($branchStock['warehouses'] as $warehouseStock)
+                                                            <div class="d-flex justify-content-between gap-3 small py-1">
+                                                                <span class="text-muted">
+                                                                    {{ $warehouseStock['name'] }}
+                                                                </span>
+                                                                <span>{{ $warehouseStock['quantity'] }}</span>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+                                            @empty
+                                                <div class="col-12 text-muted">
+                                                    No existen bodegas configuradas para mostrar el detalle.
+                                                </div>
+                                            @endforelse
+                                        </div>
+
+                                        @if (! $product->catalog_has_stock_records)
+                                            <div class="text-muted small mt-3">
+                                                Este producto todavía no tiene stock registrado por bodega.
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     @empty

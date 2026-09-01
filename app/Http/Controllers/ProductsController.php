@@ -6,6 +6,7 @@ use App\Http\Requests\StoreProductCategoryRequest;
 use App\Http\Requests\StoreProductCollectionLineRequest;
 use App\Http\Requests\StoreProductCollectionRequest;
 use App\Http\Requests\StoreProductRequest;
+use App\Modules\Operations\Models\Branch;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductAttribute;
 use App\Modules\Products\Models\ProductAttributeValue;
@@ -20,6 +21,7 @@ use App\Tenancy\TenantAccountAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -32,9 +34,33 @@ class ProductsController extends Controller
         $settings = $this->settingsRecord();
         $attributes = $this->enabledAttributes();
         $query = Product::query()
-            ->with(['type', 'category.parent', 'collection', 'line'])
-            ->withCount('variants')
-            ->withSum('inventoryStocks as operational_stock_total', 'quantity');
+            ->with([
+                'category:id,name',
+                'line:id,name',
+                'catalogImage:id,product_id,path,alt_text,is_primary,sort_order',
+                'variants' => fn ($variants) => $variants
+                    ->select([
+                        'id',
+                        'product_id',
+                        'sku',
+                        'pvp1_with_tax',
+                    ])
+                    ->orderBy('sku'),
+                'variants.attributeValues' => fn ($values) => $values
+                    ->select([
+                        'product_attribute_values.id',
+                        'product_attribute_values.product_attribute_id',
+                        'product_attribute_values.value',
+                    ])
+                    ->whereHas(
+                        'attribute',
+                        fn (Builder $attribute) => $attribute->where('code', 'size'),
+                    ),
+                'variants.attributeValues.attribute:id,code',
+                'variants.inventoryStocks:id,warehouse_id,product_variant_id,quantity',
+                'variants.inventoryStocks.warehouse:id,branch_id,name',
+                'variants.inventoryStocks.warehouse.branch:id,name',
+            ]);
 
         if ($request->filled('search')) {
             $search = $request->string('search')->toString();
@@ -79,13 +105,36 @@ class ProductsController extends Controller
             }
         }
 
+        $products = $query->latest()->paginate(15)->withQueryString();
+        $inventoryBranches = Branch::query()
+			->select(['id', 'name'])
+			->where('status', 'active')
+			->with([
+				'warehouses' => fn ($warehouses) => $warehouses
+					->select(['id', 'branch_id', 'name'])
+					->where('is_active', true)
+					->orderBy('name'),
+			])
+			->orderBy('name')
+			->get();
+
+        $products->getCollection()->each(
+            fn (Product $product) => $this->prepareCatalogProduct(
+                $product,
+                $inventoryBranches,
+            )
+        );
+
         return view('tenant.products.index', [
-            'products' => $query->latest()->paginate(15)->withQueryString(),
+            'products' => $products,
             'settings' => $settings,
             'attributes' => $attributes,
             'categories' => ProductCategory::where('is_active', true)->orderBy('name')->get(),
             'collections' => ProductCollection::where('is_active', true)->orderBy('name')->get(),
-            'lines' => ProductCollectionLine::where('is_active', true)->orderBy('name')->get(),
+            'lines' => ProductCollectionLine::where('is_active', true)
+                ->with('collection:id,name')
+                ->orderBy('name')
+                ->get(),
             'productTypes' => ProductType::where('is_active', true)
                 ->orderBy('sort_order')
                 ->orderBy('name')
@@ -97,6 +146,109 @@ class ProductsController extends Controller
                 'variants' => ProductVariant::count(),
             ],
         ]);
+    }
+
+    private function prepareCatalogProduct(
+        Product $product,
+        Collection $inventoryBranches,
+    ): void {
+        $variantRows = $product->variants
+            ->map(function (ProductVariant $variant): array {
+                $size = $variant->attributeValues
+                    ->first(
+                        fn (ProductAttributeValue $value): bool => $value->attribute?->code === 'size'
+                    )?->value;
+
+                return [
+                    'sku' => $variant->sku,
+                    'size' => $size,
+                ];
+            })
+            ->values();
+        $prices = $product->variants
+            ->pluck('pvp1_with_tax')
+            ->filter(fn ($price): bool => $price !== null)
+            ->map(fn ($price): float => round((float) $price, 2))
+            ->unique()
+            ->sort()
+            ->values();
+        $stockByWarehouse = $product->variants
+            ->flatMap(
+                fn (ProductVariant $variant): Collection => $variant->inventoryStocks
+            )
+            ->groupBy('warehouse_id')
+            ->map(
+                fn (Collection $stocks): int => $stocks->sum(
+                    fn ($stock): int => (int) round((float) $stock->quantity * 1000)
+                )
+            );
+        $stockRows = $inventoryBranches
+            ->filter(fn (Branch $branch): bool => $branch->warehouses->isNotEmpty())
+            ->map(function (Branch $branch) use ($stockByWarehouse): array {
+                $warehouses = $branch->warehouses
+                    ->map(function ($warehouse) use ($stockByWarehouse): array {
+                        $quantity = (int) ($stockByWarehouse[$warehouse->id] ?? 0);
+
+                        return [
+                            'name' => $warehouse->name,
+                            'quantity' => $this->formatInventoryQuantity($quantity),
+                            'quantity_millis' => $quantity,
+                        ];
+                    })
+                    ->values();
+                $branchTotal = (int) $warehouses->sum('quantity_millis');
+
+                return [
+                    'name' => $branch->name,
+                    'quantity' => $this->formatInventoryQuantity($branchTotal),
+                    'quantity_millis' => $branchTotal,
+                    'warehouses' => $warehouses,
+                ];
+            })
+            ->values();
+        $stockTotal = (int) $stockRows->sum('quantity_millis');
+
+        $product->setAttribute('catalog_variant_rows', $variantRows->all());
+        $product->setAttribute(
+            'catalog_price_display',
+            $this->formatCatalogPrice($prices),
+        );
+        $product->setAttribute('catalog_stock_rows', $stockRows->all());
+        $product->setAttribute(
+            'catalog_stock_total',
+            $this->formatInventoryQuantity($stockTotal),
+        );
+        $product->setAttribute(
+            'catalog_has_stock_records',
+            $product->variants->contains(
+                fn (ProductVariant $variant): bool => $variant->inventoryStocks->isNotEmpty()
+            ),
+        );
+    }
+
+    private function formatCatalogPrice(Collection $prices): string
+    {
+        if ($prices->isEmpty()) {
+            return '—';
+        }
+
+        $minimum = (float) $prices->first();
+        $maximum = (float) $prices->last();
+
+        if ($minimum === $maximum) {
+            return '$' . number_format($minimum, 2);
+        }
+
+        return '$' . number_format($minimum, 2)
+            . ' – $' . number_format($maximum, 2);
+    }
+
+    private function formatInventoryQuantity(int $millis): string
+    {
+        return rtrim(
+            rtrim(number_format($millis / 1000, 3, '.', ''), '0'),
+            '.',
+        );
     }
 
     public function create(): View

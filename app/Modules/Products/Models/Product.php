@@ -7,6 +7,7 @@ use App\Modules\TenantModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Storage;
 
 class Product extends TenantModel
@@ -82,6 +83,17 @@ class Product extends TenantModel
     {
         return $this->images()
             ->whereNull('product_variant_id');
+    }
+
+    public function catalogImage(): HasOne
+    {
+        return $this->hasOne(ProductImage::class)
+            ->whereNull('product_variant_id')
+            ->ofMany([
+                'is_primary' => 'max',
+                'sort_order' => 'min',
+                'id' => 'min',
+            ]);
     }
 
     public function primaryImage(): ?ProductImage
