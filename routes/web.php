@@ -19,6 +19,7 @@ use App\Http\Controllers\ProductImportController;
 use App\Http\Controllers\ProductImageImportController;
 use App\Http\Controllers\ProductImageController;
 use App\Http\Controllers\ProductTypeController;
+use App\Http\Controllers\InventoryStockImportController;
 use App\Http\Controllers\TenantRequestController;
 use App\Http\Controllers\WeeklyPlannerController;
 use Illuminate\Support\Facades\Route;
@@ -99,6 +100,16 @@ Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
             ->name('products.image-imports.show');
         Route::delete('products/import-images/{productImageImport}', [ProductImageImportController::class, 'cancel'])
             ->name('products.image-imports.cancel');
+        Route::get('products/import-stock', [InventoryStockImportController::class, 'create'])
+            ->name('products.stock-imports.create');
+        Route::post('products/import-stock/preview', [InventoryStockImportController::class, 'preview'])
+            ->name('products.stock-imports.preview');
+        Route::post('products/import-stock/{inventoryStockImport}', [InventoryStockImportController::class, 'store'])
+            ->name('products.stock-imports.store');
+        Route::get('products/import-stock/{inventoryStockImport}', [InventoryStockImportController::class, 'show'])
+            ->name('products.stock-imports.show');
+        Route::delete('products/import-stock/{inventoryStockImport}', [InventoryStockImportController::class, 'cancel'])
+            ->name('products.stock-imports.cancel');
         Route::post('products/{product}/images', [ProductImageController::class, 'store'])
             ->name('products.images.store');
         Route::get('products/{product}/images/{image}', [ProductImageController::class, 'show'])

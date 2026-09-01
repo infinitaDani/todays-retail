@@ -97,6 +97,10 @@
                     <i data-lucide="images"></i>
                     Importar imágenes
                 </a>
+                <a class="btn btn-outline-primary" href="{{ route('products.stock-imports.create') }}">
+                    <i data-lucide="database-zap"></i>
+                    Importar stock
+                </a>
                 <a class="btn btn-primary" href="{{ route('products.create') }}">
                     <i data-lucide="plus"></i>
                     Nuevo producto

@@ -278,6 +278,15 @@
                                         <span>Importar imágenes</span>
                                     </a>
                                 </li>
+                                <li class="side-nav-item">
+                                    <a
+                                        class="side-nav-link {{ request()->routeIs('products.stock-imports.*') ? 'active' : '' }}"
+                                        href="{{ route('products.stock-imports.create') }}"
+                                    >
+                                        <i data-lucide="database-zap"></i>
+                                        <span>Importar stock</span>
+                                    </a>
+                                </li>
                             @endif
                             <li class="side-nav-item">
                                 <a class="side-nav-link {{ request()->routeIs('products.categories*') ? 'active' : '' }}" href="{{ route('products.categories') }}">
