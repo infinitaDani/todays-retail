@@ -215,8 +215,13 @@ Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
         Route::post('operations/schedule-periods/{schedulePeriod}/change-requests', [WeeklyPlannerController::class, 'requestHistoricalChange'])->name('operations.schedule-periods.change-requests.store');
         Route::patch('operations/schedule-change-requests/{changeRequest}', [WeeklyPlannerController::class, 'resolveHistoricalChange'])->name('operations.schedule-change-requests.resolve');
         Route::get('operations/schedule/report', [WeeklyPlannerController::class, 'report'])->name('operations.schedule.report');
-        Route::get('operations/schedule/settings', [WeeklyPlannerController::class, 'settings'])->name('operations.schedule.settings');
-        Route::put('operations/schedule/settings', [WeeklyPlannerController::class, 'updateSettings'])->name('operations.schedule.settings.update');
+        Route::get('operations/schedule/settings', [WeeklyPlannerController::class, 'settings'])
+			->middleware('tenant.management')
+			->name('operations.schedule.settings');
+
+		Route::put('operations/schedule/settings', [WeeklyPlannerController::class, 'updateSettings'])
+			->middleware('tenant.management')
+			->name('operations.schedule.settings.update');
         Route::get('operations/schedule', [OperationsController::class, 'schedule'])->name('operations.schedule');
         Route::get('operations/schedule/events', [OperationsController::class, 'scheduleEvents'])->name('operations.schedule.events');
         Route::post('operations/assignments', [OperationsController::class, 'storeAssignment'])->name('operations.assignments.store');

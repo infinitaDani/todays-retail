@@ -2,8 +2,8 @@
     <div class="row g-3 mb-4">
         @foreach ([
             ['Procesadas', $import->processed_count, 'primary'],
-            ['Importadas', $import->created_count, 'success'],
-            ['Ya existentes', $import->existing_count, 'secondary'],
+            ['Nuevas importadas', $import->created_count, 'success'],
+            ['Ya existentes / omitidas', $import->existing_count, 'secondary'],
             ['Advertencias', $import->warning_count, 'warning'],
             ['Errores', $import->error_count, 'danger'],
         ] as [$label, $value, $color])

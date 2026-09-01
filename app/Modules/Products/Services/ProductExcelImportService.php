@@ -2,6 +2,7 @@
 
 namespace App\Modules\Products\Services;
 
+use App\Modules\Operations\Models\ScheduleSetting;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductCategory;
 use App\Modules\Products\Models\ProductCollection;
@@ -113,8 +114,12 @@ class ProductExcelImportService
         $created = 0;
         $existing = 0;
         $errors = [];
+        $settings = ScheduleSetting::current();
+        $importsStock = $settings->manages_inventory
+            && $settings->inventory_by_branch
+            && $import->warehouse_id !== null;
 
-        if ($import->warehouse_id !== null) {
+        if ($importsStock) {
             Warehouse::query()
                 ->whereKey($import->warehouse_id)
                 ->where('is_active', true)
@@ -133,7 +138,7 @@ class ProductExcelImportService
             }
 
             try {
-                DB::connection('tenant')->transaction(function () use ($row, $import, &$created, &$existing): void {
+                DB::connection('tenant')->transaction(function () use ($row, $import, $importsStock, &$created, &$existing): void {
                     if (ProductVariant::query()->where('sku', $row['sku'])->exists()) {
                         $existing++;
 
@@ -180,7 +185,7 @@ class ProductExcelImportService
                         'is_active' => true,
                     ]);
 
-                    if ($import->warehouse_id !== null && $row['stock'] !== null) {
+                    if ($importsStock && $row['stock'] !== null) {
                         InventoryStock::updateOrCreate(
                             [
                                 'warehouse_id' => $import->warehouse_id,

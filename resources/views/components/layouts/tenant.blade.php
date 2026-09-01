@@ -161,7 +161,7 @@
                                                     class="side-nav-link {{ request()->routeIs('operations.schedule.settings*') ? 'active' : '' }}"
                                                     href="{{ route('operations.schedule.settings') }}"
                                                 >
-                                                    <span>Configurar jornada</span>
+                                                    <span>Configuración</span>
                                                 </a>
                                             </li>
                                         @endif

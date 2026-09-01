@@ -52,6 +52,31 @@ class InventoryArchitectureTest extends TestCase
         $this->assertStringContainsString('nullOnDelete', $migration);
     }
 
+    public function test_inventory_settings_migration_defaults_to_branch_inventory(): void
+    {
+        $migration = file_get_contents(
+            database_path(
+                'migrations/tenant/2026_08_31_001311_add_inventory_settings_to_schedule_settings.php',
+            ),
+        );
+
+        $this->assertStringContainsString('manages_inventory', $migration);
+        $this->assertStringContainsString('inventory_by_branch', $migration);
+        $this->assertSame(2, substr_count($migration, '->default(true)'));
+    }
+
+    public function test_importer_keeps_stock_tenant_scoped_and_creation_only(): void
+    {
+        $service = file_get_contents(
+            app_path('Modules/Products/Services/ProductExcelImportService.php'),
+        );
+
+        $this->assertStringContainsString("'warehouse_id' => \$import->warehouse_id", $service);
+        $this->assertStringContainsString("'sync_source' => 'excel_initial'", $service);
+        $this->assertStringContainsString("if (\$row['status'] === 'existing')", $service);
+        $this->assertStringNotContainsString("'stock' => \$row['stock']", $service);
+    }
+
     public function test_category_and_collection_reads_are_operational_but_writes_are_management_only(): void
     {
         $routes = app('router')->getRoutes();

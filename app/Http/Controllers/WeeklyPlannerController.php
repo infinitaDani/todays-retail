@@ -926,8 +926,7 @@ class WeeklyPlannerController extends Controller
         return view(
             'tenant.operations.schedule-settings',
             [
-                'settings'
-                    => ScheduleSetting::firstOrCreate([]),
+                'settings' => $this->settingsRecord(),
             ]
         );
     }
@@ -966,10 +965,26 @@ class WeeklyPlannerController extends Controller
                 'nullable',
                 'boolean',
             ],
+            'manages_inventory' => [
+                'nullable',
+                'boolean',
+            ],
+            'inventory_by_branch' => [
+                'nullable',
+                'boolean',
+            ],
         ]);
 
-        ScheduleSetting::firstOrCreate([])
-            ->update($data);
+        $settings = $this->settingsRecord();
+        $settings->update([
+            'expected_hours_per_week' => $data['expected_hours_per_week'],
+            'standard_hours_per_day' => $data['standard_hours_per_day'],
+            'required_days_off_per_week' => $data['required_days_off_per_week'],
+            'warn_on_excess_hours' => $request->boolean('warn_on_excess_hours'),
+            'manages_inventory' => $request->boolean('manages_inventory'),
+            'inventory_by_branch' => $request->boolean('manages_inventory')
+                && $request->boolean('inventory_by_branch'),
+        ]);
 
         return back()->with(
             'success',
@@ -993,6 +1008,11 @@ class WeeklyPlannerController extends Controller
             )
             ->orderBy('name')
             ->get();
+    }
+
+    private function settingsRecord(): ScheduleSetting
+    {
+        return ScheduleSetting::current();
     }
 
     private function branchId(

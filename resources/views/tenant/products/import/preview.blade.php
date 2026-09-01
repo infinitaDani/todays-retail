@@ -2,8 +2,8 @@
     <div class="row g-3 mb-4">
         @foreach ([
             ['Total', $summary['total'], 'primary'],
-            ['Listos', $summary['ready'], 'success'],
-            ['Ya existen', $summary['existing'], 'secondary'],
+            ['Nuevos', $summary['ready'], 'success'],
+            ['Ya existentes / omitidos', $summary['existing'], 'secondary'],
             ['Advertencias', $summary['warning'], 'warning'],
             ['Errores', $summary['error'], 'danger'],
         ] as [$label, $value, $color])
@@ -19,7 +19,9 @@
     <div class="tr-card mb-3 d-flex flex-wrap gap-2 align-items-center">
         <div>
             <strong>{{ $import->original_filename }}</strong>
-            <div class="text-muted small">Solo se crearán filas nuevas y válidas.</div>
+            <div class="text-muted small">
+                Solo se crearán filas nuevas y válidas. Los SKU existentes serán omitidos.
+            </div>
             <div class="text-muted small">
                 @if ($import->warehouse_id)
                     El stock inicial se registrará en
@@ -59,7 +61,9 @@
                         <th>Tipo</th>
                         <th>Colección</th>
                         <th>PVP1</th>
-                        <th>Stock</th>
+                        <th>
+                            {{ $import->warehouse_id ? 'Stock inicial' : 'Stock del archivo (omitido)' }}
+                        </th>
                         <th>Estado</th>
                     </tr>
                 </thead>
@@ -80,7 +84,7 @@
                                     $labels = [
                                         'ready' => ['success', 'Listo para importar'],
                                         'warning' => ['warning', 'Advertencia'],
-                                        'existing' => ['secondary', 'Ya existe'],
+                                        'existing' => ['secondary', 'Ya existente / omitido'],
                                         'error' => ['danger', 'Error'],
                                     ];
                                     [$color, $label] = $labels[$row['status']];

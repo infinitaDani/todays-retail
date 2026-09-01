@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Modules\Operations\Models\ScheduleSetting;
 use App\Modules\Products\Models\ProductImport;
 use App\Modules\Products\Models\Warehouse;
 use App\Modules\Products\Services\ProductExcelImportService;
@@ -11,12 +12,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProductImportController extends Controller
 {
     public function create(Request $request): View
     {
+        $inventorySettings = $this->inventorySettings();
+
         return view('tenant.products.import.create', [
             'imports' => ProductImport::query()
                 ->where('core_user_id', $request->user()->id)
@@ -27,6 +31,7 @@ class ProductImportController extends Controller
                 ->with('branch')
                 ->orderBy('name')
                 ->get(),
+            'inventorySettings' => $inventorySettings,
         ]);
     }
 
@@ -34,15 +39,40 @@ class ProductImportController extends Controller
         Request $request,
         ProductExcelImportService $service
     ): View|RedirectResponse {
+        $inventorySettings = $this->inventorySettings();
+
         $data = $request->validate([
             'excel' => ['required', 'file', 'mimes:xlsx,xls', 'max:20480'],
+            'stock_import_mode' => [
+                'required',
+                Rule::in(['none', 'warehouse']),
+            ],
             'warehouse_id' => [
+                Rule::requiredIf($request->input('stock_import_mode') === 'warehouse'),
                 'nullable',
                 'integer',
                 Rule::exists('tenant.warehouses', 'id')
                     ->where('is_active', true),
             ],
         ]);
+
+        $importsStock = $data['stock_import_mode'] === 'warehouse';
+
+        if ($importsStock && ! $inventorySettings->manages_inventory) {
+            throw ValidationException::withMessages([
+                'stock_import_mode' => 'La gestión de inventario está desactivada para esta cuenta.',
+            ]);
+        }
+
+        if ($importsStock && ! $inventorySettings->inventory_by_branch) {
+            throw ValidationException::withMessages([
+                'stock_import_mode' => 'Para importar existencias, habilita Inventario por sucursal en Configuración.',
+            ]);
+        }
+
+        if (! $importsStock) {
+            $data['warehouse_id'] = null;
+        }
 
         $account = $request->attributes->get('tenantAccount');
         $file = $data['excel'];
@@ -148,5 +178,10 @@ class ProductImportController extends Controller
         if ((int) $productImport->core_user_id !== (int) $request->user()->id) {
             throw new AuthorizationException('No puedes acceder a una importación de otro usuario.');
         }
+    }
+
+    private function inventorySettings(): ScheduleSetting
+    {
+        return ScheduleSetting::current();
     }
 }
