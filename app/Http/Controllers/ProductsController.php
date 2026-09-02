@@ -38,13 +38,13 @@ class ProductsController extends Controller
                 'category:id,name',
                 'line:id,name',
                 'catalogImage' => fn ($image) => $image->select([
-					'product_images.id',
-					'product_images.product_id',
-					'product_images.path',
-					'product_images.alt_text',
-					'product_images.is_primary',
-					'product_images.sort_order',
-				]),
+                    'product_images.id',
+                    'product_images.product_id',
+                    'product_images.path',
+                    'product_images.alt_text',
+                    'product_images.is_primary',
+                    'product_images.sort_order',
+                ]),
                 'variants' => fn ($variants) => $variants
                     ->select([
                         'id',
@@ -114,16 +114,16 @@ class ProductsController extends Controller
 
         $products = $query->latest()->paginate(15)->withQueryString();
         $inventoryBranches = Branch::query()
-			->select(['id', 'name'])
-			->where('status', 'active')
-			->with([
-				'warehouses' => fn ($warehouses) => $warehouses
-					->select(['id', 'branch_id', 'name'])
-					->where('is_active', true)
-					->orderBy('name'),
-			])
-			->orderBy('name')
-			->get();
+            ->select(['id', 'name'])
+            ->where('status', 'active')
+            ->with([
+                'warehouses' => fn ($warehouses) => $warehouses
+                    ->select(['id', 'branch_id', 'name'])
+                    ->where('is_active', true)
+                    ->orderBy('name'),
+            ])
+            ->orderBy('name')
+            ->get();
 
         $products->getCollection()->each(
             fn (Product $product) => $this->prepareCatalogProduct(
@@ -556,6 +556,23 @@ class ProductsController extends Controller
         $line->update($data);
 
         return back()->with('success', 'Línea actualizada.');
+    }
+
+    public function destroyLine(
+        ProductCollection $collection,
+        ProductCollectionLine $line,
+    ): RedirectResponse {
+        abort_unless($line->product_collection_id === $collection->id, 404);
+
+        if ($line->products()->exists()) {
+            return back()->withErrors([
+                'line' => 'No se puede eliminar una línea que tiene productos asociados. Puedes marcarla como inactiva.',
+            ]);
+        }
+
+        $line->delete();
+
+        return back()->with('success', 'Línea eliminada.');
     }
 
     public function settings(): View

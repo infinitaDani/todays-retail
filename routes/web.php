@@ -162,6 +162,8 @@ Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
             ->name('products.collections.lines.store');
         Route::put('products/collections/{collection}/lines/{line}', [ProductsController::class, 'updateLine'])
             ->name('products.collections.lines.update');
+        Route::delete('products/collections/{collection}/lines/{line}', [ProductsController::class, 'destroyLine'])
+            ->name('products.collections.lines.destroy');
         Route::get('products/{product}', [ProductsController::class, 'show'])
             ->name('products.show');
         Route::get('products/{product}/edit', [ProductsController::class, 'edit'])

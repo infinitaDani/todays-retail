@@ -20,6 +20,69 @@
             <tbody>
                 @forelse($collection->lines as $line)
                     <tr>
+                    @if ($canManage)
+                        <td>
+                            <input
+                                class="form-control"
+                                type="text"
+                                name="name"
+                                value="{{ $line->name }}"
+                                required
+                                form="line-update-{{ $line->id }}"
+                            >
+                        </td>
+
+                        <td>
+                            <select
+                                class="form-select"
+                                name="is_active"
+                                form="line-update-{{ $line->id }}"
+                            >
+                                <option value="1" @selected($line->is_active)>
+                                    Activa
+                                </option>
+                                <option value="0" @selected(! $line->is_active)>
+                                    Inactiva
+                                </option>
+                            </select>
+                        </td>
+
+                        <td>
+                            <div class="d-flex gap-2">
+                                <form
+                                    id="line-update-{{ $line->id }}"
+                                    method="POST"
+                                    action="{{ route('products.collections.lines.update', [$collection, $line]) }}"
+                                >
+                                    @csrf
+                                    @method('PUT')
+
+                                    <button
+                                        class="btn btn-sm btn-primary"
+                                        type="submit"
+                                    >
+                                        Guardar
+                                    </button>
+                                </form>
+
+                                <form
+                                    method="POST"
+                                    action="{{ route('products.collections.lines.destroy', [$collection, $line]) }}"
+                                    onsubmit="return confirm('¿Eliminar esta línea?');"
+                                >
+                                    @csrf
+                                    @method('DELETE')
+
+                                    <button
+                                        class="btn btn-sm btn-outline-danger"
+                                        type="submit"
+                                    >
+                                        Eliminar
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    @else
                         <td>
                             {{ $line->name }}
                         </td>
@@ -29,38 +92,11 @@
                         </td>
 
                         <td>
-                            @if ($canManage)
-                                <form
-                                    method="POST"
-                                    action="{{ route('products.collections.lines.update', [$collection, $line]) }}"
-                                >
-                                    @csrf
-                                    @method('PUT')
-
-                                    <input
-                                        type="hidden"
-                                        name="name"
-                                        value="{{ $line->name }}"
-                                    >
-
-                                    <input
-                                        type="hidden"
-                                        name="is_active"
-                                        value="{{ $line->is_active }}"
-                                    >
-
-                                    <button
-                                        class="btn btn-sm btn-light"
-                                        type="submit"
-                                    >
-                                        Guardar
-                                    </button>
-                                </form>
-                            @else
-                                <span class="text-muted">Solo lectura</span>
-                            @endif
+                            <span class="text-muted">Solo lectura</span>
                         </td>
-                    </tr>
+                    @endif
+                </tr>
+
                 @empty
                     <tr>
                         <td>
