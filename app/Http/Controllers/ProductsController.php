@@ -37,7 +37,14 @@ class ProductsController extends Controller
             ->with([
                 'category:id,name',
                 'line:id,name',
-                'catalogImage:id,product_id,path,alt_text,is_primary,sort_order',
+                'catalogImage' => fn ($image) => $image->select([
+					'product_images.id',
+					'product_images.product_id',
+					'product_images.path',
+					'product_images.alt_text',
+					'product_images.is_primary',
+					'product_images.sort_order',
+				]),
                 'variants' => fn ($variants) => $variants
                     ->select([
                         'id',
