@@ -538,26 +538,24 @@ Location:
 
 app/Modules/Merchandising/
 
-This is a new module planned for Today's Retail.
+Visual Merchandising is tenant-owned. A `MerchandisingFixtureType` describes a
+reusable structure or accessory, and stores only a logical `icon_path` reference.
+The 24 platform defaults use shared public assets; tenant-created fixture types
+remain valid without an icon and use a visual fallback.
 
-It will manage store merchandising/perchaje.
+Each Branch may have multiple `MerchandisingFloorPlan` records for its floors or
+zones. A plan contains positioned `MerchandisingFloorPlanItem` records. An item
+references a fixture type and keeps its own canvas geometry. Accessories may
+optionally reference a root structure in the same plan through `parent_item_id`;
+the relationship is logical and does not replace the accessory geometry.
 
-The system should allow management of:
+The fixture-type defaults are synchronized idempotently:
+missing defaults are created and missing platform icon references are filled,
+without deleting tenant customizations.
 
-- Branch
-- Shelf/panel
-- Shelf lines
-- Products
-- Product positioning
-
-Expected entities include:
-
-- Shelf panels
-- Shelf lines
-- Products
-- Product placement
-
-The objective is to make the store merchandising process easier for employees.
+Product, product-line and assortment placements are intentionally outside the
+current phase. They must be added later through tenant-owned incremental schema,
+without coupling fixture behavior to a default name, code or filename.
 
 ---
 

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Operations\Models;
 
+use App\Modules\Merchandising\Models\MerchandisingFloorPlan;
 use App\Modules\Products\Models\Warehouse;
 use App\Modules\TenantModel;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -27,5 +28,10 @@ class Branch extends TenantModel
     public function warehouses(): HasMany
     {
         return $this->hasMany(Warehouse::class);
+    }
+
+    public function merchandisingFloorPlans(): HasMany
+    {
+        return $this->hasMany(MerchandisingFloorPlan::class);
     }
 }

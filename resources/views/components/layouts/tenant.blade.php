@@ -317,6 +317,32 @@
                                 </li>
                             @endif
                         </ul>
+
+                        <p class="sidebar-heading">Visual Merchandising</p>
+
+					<ul class="side-nav">
+						<li class="side-nav-item">
+							<a
+								class="side-nav-link {{ request()->routeIs('merchandising.floor-plan', 'merchandising.floor-plans.*') ? 'active' : '' }}"
+								href="{{ route('merchandising.floor-plan') }}"
+							>
+								<i data-lucide="layout-template"></i>
+								<span>Floor Plan</span>
+							</a>
+						</li>
+
+						@if ($canManageTenant)
+							<li class="side-nav-item">
+								<a
+									class="side-nav-link {{ request()->routeIs('merchandising.fixture-types.*') ? 'active' : '' }}"
+									href="{{ route('merchandising.fixture-types.index') }}"
+								>
+									<i data-lucide="blocks"></i>
+									<span>Elementos</span>
+								</a>
+							</li>
+						@endif
+					</ul>
                     @endif
                 </div>
             </aside>

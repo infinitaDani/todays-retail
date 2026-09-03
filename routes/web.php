@@ -20,6 +20,8 @@ use App\Http\Controllers\ProductImageImportController;
 use App\Http\Controllers\ProductImageController;
 use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\InventoryStockImportController;
+use App\Http\Controllers\MerchandisingFixtureTypeController;
+use App\Http\Controllers\MerchandisingFloorPlanController;
 use App\Http\Controllers\TenantRequestController;
 use App\Http\Controllers\WeeklyPlannerController;
 use Illuminate\Support\Facades\Route;
@@ -62,18 +64,63 @@ Route::prefix('core-admin')->as('admin.')->middleware(['auth', 'core.admin'])->g
     Route::resource('roles', CoreAdminRoleController::class)->except(['show', 'destroy']);
 });
 
-Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
-    Route::middleware('tenant.operational')->group(function () {
-        Route::get('products/categories', [ProductsController::class, 'categories'])
-            ->name('products.categories');
-        Route::get('products/collections', [ProductsController::class, 'collections'])
-            ->name('products.collections');
-        Route::get('products/collections/{collection}', [ProductsController::class, 'showCollection'])
-            ->whereNumber('collection')
-            ->name('products.collections.show');
-    });
+Route::middleware('tenant.operational')->group(function () {
+    Route::get('products/categories', [ProductsController::class, 'categories'])
+        ->name('products.categories');
+    Route::get('products/collections', [ProductsController::class, 'collections'])
+        ->name('products.collections');
+    Route::get('products/collections/{collection}', [ProductsController::class, 'showCollection'])
+        ->whereNumber('collection')
+        ->name('products.collections.show');
+
+    Route::get(
+        'visual-merchandising/floor-plan',
+        [MerchandisingFloorPlanController::class, 'index'],
+    )
+        ->name('merchandising.floor-plan');
+});
 
     Route::middleware('tenant.management')->group(function () {
+        Route::get(
+            'visual-merchandising/elements',
+            [MerchandisingFixtureTypeController::class, 'index'],
+        )
+            ->name('merchandising.fixture-types.index');
+        Route::get(
+            'visual-merchandising/elements/create',
+            [MerchandisingFixtureTypeController::class, 'create'],
+        )
+            ->name('merchandising.fixture-types.create');
+        Route::post(
+            'visual-merchandising/elements',
+            [MerchandisingFixtureTypeController::class, 'store'],
+        )
+            ->name('merchandising.fixture-types.store');
+        Route::get(
+            'visual-merchandising/elements/{fixtureType}/edit',
+            [MerchandisingFixtureTypeController::class, 'edit'],
+        )
+            ->name('merchandising.fixture-types.edit');
+        Route::put(
+            'visual-merchandising/elements/{fixtureType}',
+            [MerchandisingFixtureTypeController::class, 'update'],
+        )
+            ->name('merchandising.fixture-types.update');
+        Route::patch(
+            'visual-merchandising/elements/{fixtureType}/status',
+            [MerchandisingFixtureTypeController::class, 'toggle'],
+        )
+            ->name('merchandising.fixture-types.toggle');
+        Route::post(
+            'visual-merchandising/floor-plans',
+            [MerchandisingFloorPlanController::class, 'store'],
+        )
+            ->name('merchandising.floor-plans.store');
+        Route::put(
+            'visual-merchandising/floor-plans/{floorPlan}',
+            [MerchandisingFloorPlanController::class, 'update'],
+        )
+            ->name('merchandising.floor-plans.update');
         Route::get('products', [ProductsController::class, 'index'])
             ->name('products.index');
         Route::get('products/create', [ProductsController::class, 'create'])
