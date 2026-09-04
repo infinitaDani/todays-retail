@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreBranchRequest;
+use App\Modules\Inventory\Models\InventorySyncExecution;
+use App\Modules\Inventory\Services\InventoryAccess;
 use App\Modules\Operations\Models\Branch;
 use App\Modules\Operations\Models\StaffProfile;
+use App\Modules\Products\Models\InventoryStockImport;
 use App\Modules\Products\Services\WarehouseProvisioningService;
 use App\Modules\Tasks\Models\TaskExecution;
 use Illuminate\Database\Eloquent\Builder;
@@ -76,11 +79,21 @@ class BranchController extends Controller
             ->with('success', 'Sucursal creada correctamente.');
     }
 
-    public function show(Branch $branch): View
-    {
+    public function show(
+        Request $request,
+        Branch $branch,
+        InventoryAccess $inventoryAccess,
+    ): View {
+        $scope = $inventoryAccess->scope($request);
+        $branch->load([
+            'warehouses' => fn ($query) => $query->orderBy('name'),
+        ]);
+
         return view('tenant.operations.branch-show', [
             'branch' => $branch,
             'inUse' => $this->inUse($branch),
+            'canManageWarehouses' => $inventoryAccess
+                ->isAccountAdministrator($scope),
         ]);
     }
 
@@ -128,6 +141,13 @@ class BranchController extends Controller
     {
         return $branch->staffProfiles()->exists()
             || $branch->assignments()->exists()
+            || $branch->warehouses()->whereHas('stocks')->exists()
+            || InventoryStockImport::query()
+                ->where('branch_id', $branch->id)
+                ->exists()
+            || InventorySyncExecution::query()
+                ->where('branch_id', $branch->id)
+                ->exists()
             || TaskExecution::query()
                 ->where('branch_id', $branch->id)
                 ->exists();

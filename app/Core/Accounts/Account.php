@@ -19,7 +19,19 @@ class Account extends Model
         'ruc',
         'database_name',
         'status',
+        'contifico_enabled',
+        'manual_bulk_syncs_per_day',
+        'manual_bulk_min_interval_minutes',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'contifico_enabled' => 'boolean',
+            'manual_bulk_syncs_per_day' => 'integer',
+            'manual_bulk_min_interval_minutes' => 'integer',
+        ];
+    }
 
     public function users(): BelongsToMany
     {

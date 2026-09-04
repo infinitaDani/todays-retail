@@ -12,6 +12,7 @@
             'can_operate' => false,
         ];
     $tenantRole = $tenantPermissions['role'];
+    $isAccountAdministrator = $tenantPermissions['account_administrator'];
     $canManageTenant = $tenantPermissions['can_manage'];
     $canAdministerSchedule = $tenantPermissions['can_administer_schedule'];
     $canOperateTenant = $tenantPermissions['can_operate'];
@@ -278,15 +279,6 @@
                                         <span>Importar imágenes</span>
                                     </a>
                                 </li>
-                                <li class="side-nav-item">
-                                    <a
-                                        class="side-nav-link {{ request()->routeIs('products.stock-imports.*') ? 'active' : '' }}"
-                                        href="{{ route('products.stock-imports.create') }}"
-                                    >
-                                        <i data-lucide="database-zap"></i>
-                                        <span>Importar stock</span>
-                                    </a>
-                                </li>
                             @endif
                             <li class="side-nav-item">
                                 <a class="side-nav-link {{ request()->routeIs('products.categories*') ? 'active' : '' }}" href="{{ route('products.categories') }}">
@@ -313,6 +305,63 @@
                                     <a class="side-nav-link {{ request()->routeIs('products.settings*') ? 'active' : '' }}" href="{{ route('products.settings') }}">
                                         <i data-lucide="sliders-horizontal"></i>
                                         <span>Configuración</span>
+                                    </a>
+                                </li>
+                            @endif
+                        </ul>
+
+                        <p class="sidebar-heading">Inventario</p>
+                        <ul class="side-nav">
+                            <li class="side-nav-item">
+                                <a
+                                    class="side-nav-link {{ request()->routeIs('inventory.dashboard') ? 'active' : '' }}"
+                                    href="{{ route('inventory.dashboard') }}"
+                                >
+                                    <i data-lucide="layout-dashboard"></i>
+                                    <span>Dashboard</span>
+                                </a>
+                            </li>
+
+                            <li class="side-nav-item">
+                                <a
+                                    class="side-nav-link {{ request()->routeIs('inventory.warehouses.*') ? 'active' : '' }}"
+                                    href="{{ route('inventory.warehouses.index') }}"
+                                >
+                                    <i data-lucide="warehouse"></i>
+                                    <span>Bodegas</span>
+                                </a>
+                            </li>
+
+                            @if ($canManageTenant)
+                                <li class="side-nav-item">
+                                    <a
+                                        class="side-nav-link {{ request()->routeIs('products.stock-imports.*') ? 'active' : '' }}"
+                                        href="{{ route('products.stock-imports.create') }}"
+                                    >
+                                        <i data-lucide="file-up"></i>
+                                        <span>Importación de stock</span>
+                                    </a>
+                                </li>
+
+                                <li class="side-nav-item">
+                                    <a
+                                        class="side-nav-link {{ request()->routeIs('inventory.history') ? 'active' : '' }}"
+                                        href="{{ route('inventory.history') }}"
+                                    >
+                                        <i data-lucide="history"></i>
+                                        <span>Historial</span>
+                                    </a>
+                                </li>
+                            @endif
+
+                            @if ($isAccountAdministrator)
+                                <li class="side-nav-item">
+                                    <a
+                                        class="side-nav-link {{ request()->routeIs('inventory.settings.*') ? 'active' : '' }}"
+                                        href="{{ route('inventory.settings.edit') }}"
+                                    >
+                                        <i data-lucide="plug-zap"></i>
+                                        <span>Contífico</span>
                                     </a>
                                 </li>
                             @endif

@@ -14,6 +14,8 @@ class Warehouse extends TenantModel
         'name',
         'code',
         'is_active',
+        'purposes',
+        'contifico_code',
         'external_system',
         'external_warehouse_id',
         'external_pos',
@@ -23,6 +25,7 @@ class Warehouse extends TenantModel
     {
         return [
             'is_active' => 'boolean',
+			'purposes' => 'array',
         ];
     }
 

@@ -28,6 +28,13 @@ return [
         'key' => env('RESEND_KEY'),
     ],
 
+    'contifico' => [
+        'base_url' => env(
+            'CONTIFICO_BASE_URL',
+            'https://api.contifico.com/sistema',
+        ),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

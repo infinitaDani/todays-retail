@@ -691,3 +691,44 @@ Every architectural decision should preserve:
 - Security
 - Clear separation between Core and Tenant data
 - Ability to onboard additional accounts without modifying application code
+
+---
+
+## 22. Inventory Administration and Contífico Foundation
+
+Inventory operational data belongs exclusively to each Tenant Database.
+
+The authoritative inventory hierarchy remains:
+
+```text
+Branch
+  -> Warehouse
+    -> InventoryStock
+      -> ProductVariant (SKU)
+```
+
+`inventory_stocks` remains the local source of stock quantities by warehouse.
+The Inventory administration module does not introduce a second stock model.
+
+Warehouse administration is restricted to the Account Administrator. Management,
+Store Admin and Advisor may read warehouses according to their tenant operational
+scope. Store Admin and Advisor are always restricted to the branch identified by
+their `StaffProfile`.
+
+Contífico configuration is tenant-specific. Its API Key is stored encrypted and is
+never rendered or logged in full. The application stores only a generic mapping
+code in `warehouses.contifico_code`; future product queries will use that value in
+the `pos` query parameter.
+
+Commercial entitlements belong to Core because they are part of the Account plan:
+
+- `accounts.contifico_enabled`
+- `accounts.manual_bulk_syncs_per_day`
+- `accounts.manual_bulk_min_interval_minutes`
+
+Tenant and per-user limits may only reduce the Core plan allowance. They can never
+increase it.
+
+`inventory_sync_executions` is the tenant audit structure reserved for future
+manual, automatic and per-product synchronizations. This phase only supports a
+safe connection test and does not execute or schedule stock synchronization.

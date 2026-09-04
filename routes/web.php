@@ -20,9 +20,13 @@ use App\Http\Controllers\ProductImageImportController;
 use App\Http\Controllers\ProductImageController;
 use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\InventoryStockImportController;
+use App\Http\Controllers\InventoryConfigurationController;
+use App\Http\Controllers\InventoryDashboardController;
+use App\Http\Controllers\InventorySyncHistoryController;
 use App\Http\Controllers\MerchandisingFixtureTypeController;
 use App\Http\Controllers\MerchandisingFloorPlanController;
 use App\Http\Controllers\TenantRequestController;
+use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\WeeklyPlannerController;
 use Illuminate\Support\Facades\Route;
 
@@ -66,22 +70,93 @@ Route::prefix('core-admin')->as('admin.')->middleware(['auth', 'core.admin'])->g
 
 Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
     Route::middleware('tenant.operational')->group(function () {
-    Route::get('products/categories', [ProductsController::class, 'categories'])
-        ->name('products.categories');
-    Route::get('products/collections', [ProductsController::class, 'collections'])
-        ->name('products.collections');
-    Route::get('products/collections/{collection}', [ProductsController::class, 'showCollection'])
-        ->whereNumber('collection')
-        ->name('products.collections.show');
+        Route::get('inventory', InventoryDashboardController::class)
+            ->name('inventory.dashboard');
+        Route::get(
+            'inventory/warehouses',
+            [WarehouseController::class, 'index'],
+        )
+            ->name('inventory.warehouses.index');
+        Route::get(
+            'inventory/warehouses/{warehouse}',
+            [WarehouseController::class, 'show'],
+        )
+            ->whereNumber('warehouse')
+            ->name('inventory.warehouses.show');
 
-    Route::get(
-        'visual-merchandising/floor-plan',
-        [MerchandisingFloorPlanController::class, 'index'],
-    )
-        ->name('merchandising.floor-plan');
-});
+        Route::get('products/categories', [ProductsController::class, 'categories'])
+            ->name('products.categories');
+        Route::get('products/collections', [ProductsController::class, 'collections'])
+            ->name('products.collections');
+        Route::get('products/collections/{collection}', [ProductsController::class, 'showCollection'])
+            ->whereNumber('collection')
+            ->name('products.collections.show');
+
+        Route::get(
+            'visual-merchandising/floor-plan',
+            [MerchandisingFloorPlanController::class, 'index'],
+        )
+            ->name('merchandising.floor-plan');
+    });
+
+    Route::middleware('tenant.account-admin')->group(function () {
+        Route::get(
+            'inventory/warehouses/create',
+            [WarehouseController::class, 'create'],
+        )
+            ->name('inventory.warehouses.create');
+        Route::post(
+            'inventory/warehouses',
+            [WarehouseController::class, 'store'],
+        )
+            ->name('inventory.warehouses.store');
+        Route::get(
+            'inventory/warehouses/{warehouse}/edit',
+            [WarehouseController::class, 'edit'],
+        )
+            ->whereNumber('warehouse')
+            ->name('inventory.warehouses.edit');
+        Route::put(
+            'inventory/warehouses/{warehouse}',
+            [WarehouseController::class, 'update'],
+        )
+            ->whereNumber('warehouse')
+            ->name('inventory.warehouses.update');
+        Route::patch(
+            'inventory/warehouses/{warehouse}/status',
+            [WarehouseController::class, 'toggle'],
+        )
+            ->whereNumber('warehouse')
+            ->name('inventory.warehouses.status');
+        Route::delete(
+            'inventory/warehouses/{warehouse}',
+            [WarehouseController::class, 'destroy'],
+        )
+            ->whereNumber('warehouse')
+            ->name('inventory.warehouses.destroy');
+
+        Route::get(
+            'inventory/contifico',
+            [InventoryConfigurationController::class, 'edit'],
+        )
+            ->name('inventory.settings.edit');
+        Route::put(
+            'inventory/contifico',
+            [InventoryConfigurationController::class, 'update'],
+        )
+            ->name('inventory.settings.update');
+        Route::post(
+            'inventory/contifico/test',
+            [InventoryConfigurationController::class, 'test'],
+        )
+            ->middleware('throttle:5,1')
+            ->name('inventory.settings.test');
+    });
 
     Route::middleware('tenant.management')->group(function () {
+        Route::get('inventory/history', InventorySyncHistoryController::class)
+            ->name('inventory.history');
+
         Route::get(
             'visual-merchandising/elements',
             [MerchandisingFixtureTypeController::class, 'index'],

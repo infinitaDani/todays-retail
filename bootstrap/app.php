@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\EnsureActiveAccount;
 use App\Http\Middleware\EnsureCoreAdministrator;
 use App\Http\Middleware\EnsureScheduleAdministrator;
+use App\Http\Middleware\EnsureTenantAccountAdministrator;
 use App\Http\Middleware\EnsureTenantManagement;
 use App\Http\Middleware\EnsureTenantOperational;
 use App\Http\Middleware\InitializeTenant;
@@ -24,19 +25,20 @@ return Application::configure(basePath: dirname(__DIR__))
             'active.account' => EnsureActiveAccount::class,
             'core.admin' => EnsureCoreAdministrator::class,
             'schedule.admin' => EnsureScheduleAdministrator::class,
+            'tenant.account-admin' => EnsureTenantAccountAdministrator::class,
             'tenant.management' => EnsureTenantManagement::class,
             'tenant.operational' => EnsureTenantOperational::class,
             'tenant' => InitializeTenant::class,
         ]);
-		$middleware->appendToPriorityList(
-			\Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
-			EnsureActiveAccount::class
-		);
+        $middleware->appendToPriorityList(
+            \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            EnsureActiveAccount::class,
+        );
 
-		$middleware->appendToPriorityList(
-			EnsureActiveAccount::class,
-			InitializeTenant::class
-		);
+        $middleware->appendToPriorityList(
+            EnsureActiveAccount::class,
+            InitializeTenant::class,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
