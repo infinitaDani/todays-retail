@@ -64,7 +64,8 @@ Route::prefix('core-admin')->as('admin.')->middleware(['auth', 'core.admin'])->g
     Route::resource('roles', CoreAdminRoleController::class)->except(['show', 'destroy']);
 });
 
-Route::middleware('tenant.operational')->group(function () {
+Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
+    Route::middleware('tenant.operational')->group(function () {
     Route::get('products/categories', [ProductsController::class, 'categories'])
         ->name('products.categories');
     Route::get('products/collections', [ProductsController::class, 'collections'])
