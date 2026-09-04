@@ -9,12 +9,14 @@
             'account_administrator' => false,
             'can_manage' => false,
             'can_administer_schedule' => false,
+            'can_sync_inventory' => false,
             'can_operate' => false,
         ];
     $tenantRole = $tenantPermissions['role'];
     $isAccountAdministrator = $tenantPermissions['account_administrator'];
     $canManageTenant = $tenantPermissions['can_manage'];
     $canAdministerSchedule = $tenantPermissions['can_administer_schedule'];
+    $canSyncInventory = $tenantPermissions['can_sync_inventory'];
     $canOperateTenant = $tenantPermissions['can_operate'];
 @endphp
 
@@ -151,11 +153,11 @@
                                                 <span>Calendario</span>
                                             </a>
                                         </li>
-										<li>
-											<a class="side-nav-link {{ request()->routeIs('operations.my-tasks') ? 'active' : '' }}" href="{{ route('operations.my-tasks') }}">
-												<span>Mis tareas</span>
-											</a>
-										</li>
+                                        <li>
+                                            <a class="side-nav-link {{ request()->routeIs('operations.my-tasks') ? 'active' : '' }}" href="{{ route('operations.my-tasks') }}">
+                                                <span>Mis tareas</span>
+                                            </a>
+                                        </li>
                                         <li>
                                             <a class="side-nav-link {{ request()->routeIs('operations.shifts') ? 'active' : '' }}" href="{{ route('operations.shifts') }}">
                                                 <span>Turnos</span>
@@ -216,38 +218,38 @@
                     @if ($canOperateTenant)
                         <p class="sidebar-heading">Knowledge</p>
                         <ul class="side-nav">
-							<li class="side-nav-item">
-								<a
-									class="side-nav-link {{ request()->routeIs('knowledge.center', 'knowledge.read') ? 'active' : '' }}"
-									href="{{ route('knowledge.center') }}"
-								>
-									<i data-lucide="book-open"></i>
-									<span>Knowledge Center</span>
-								</a>
-							</li>
+                            <li class="side-nav-item">
+                                <a
+                                    class="side-nav-link {{ request()->routeIs('knowledge.center', 'knowledge.read') ? 'active' : '' }}"
+                                    href="{{ route('knowledge.center') }}"
+                                >
+                                    <i data-lucide="book-open"></i>
+                                    <span>Knowledge Center</span>
+                                </a>
+                            </li>
 
-							@if ($canManageTenant)
-								<li class="side-nav-item">
-									<a
-										class="side-nav-link {{ request()->routeIs('knowledge.articles*') ? 'active' : '' }}"
-										href="{{ route('knowledge.articles') }}"
-									>
-										<i data-lucide="settings-2"></i>
-										<span>Administrar Knowledge</span>
-									</a>
-								</li>
+                            @if ($canManageTenant)
+                                <li class="side-nav-item">
+                                    <a
+                                        class="side-nav-link {{ request()->routeIs('knowledge.articles*') ? 'active' : '' }}"
+                                        href="{{ route('knowledge.articles') }}"
+                                    >
+                                        <i data-lucide="settings-2"></i>
+                                        <span>Administrar Knowledge</span>
+                                    </a>
+                                </li>
 
-								<li class="side-nav-item">
-									<a
-										class="side-nav-link {{ request()->routeIs('knowledge.categories*') ? 'active' : '' }}"
-										href="{{ route('knowledge.categories') }}"
-									>
-										<i data-lucide="folder-tree"></i>
-										<span>Categorías</span>
-									</a>
-								</li>
-							@endif
-						</ul>
+                                <li class="side-nav-item">
+                                    <a
+                                        class="side-nav-link {{ request()->routeIs('knowledge.categories*') ? 'active' : '' }}"
+                                        href="{{ route('knowledge.categories') }}"
+                                    >
+                                        <i data-lucide="folder-tree"></i>
+                                        <span>Categorías</span>
+                                    </a>
+                                </li>
+                            @endif
+                        </ul>
 
                         <p class="sidebar-heading">Productos</p>
                         <ul class="side-nav">
@@ -343,9 +345,29 @@
                                     </a>
                                 </li>
 
+                            @endif
+
+                            @if ($canSyncInventory)
                                 <li class="side-nav-item">
                                     <a
-                                        class="side-nav-link {{ request()->routeIs('inventory.history') ? 'active' : '' }}"
+                                        class="side-nav-link {{ request()->routeIs(
+                                            'inventory.contifico',
+                                            'inventory.settings.*',
+                                            'inventory.sync.*',
+                                        ) ? 'active' : '' }}"
+                                        href="{{ route('inventory.contifico') }}"
+                                    >
+                                        <i data-lucide="plug-zap"></i>
+                                        <span>Contífico</span>
+                                    </a>
+                                </li>
+
+                                <li class="side-nav-item">
+                                    <a
+                                        class="side-nav-link {{ request()->routeIs(
+                                            'inventory.history',
+                                            'inventory.sync-executions.*',
+                                        ) ? 'active' : '' }}"
                                         href="{{ route('inventory.history') }}"
                                     >
                                         <i data-lucide="history"></i>
@@ -353,45 +375,33 @@
                                     </a>
                                 </li>
                             @endif
-
-                            @if ($isAccountAdministrator)
-                                <li class="side-nav-item">
-                                    <a
-                                        class="side-nav-link {{ request()->routeIs('inventory.settings.*') ? 'active' : '' }}"
-                                        href="{{ route('inventory.settings.edit') }}"
-                                    >
-                                        <i data-lucide="plug-zap"></i>
-                                        <span>Contífico</span>
-                                    </a>
-                                </li>
-                            @endif
                         </ul>
 
                         <p class="sidebar-heading">Visual Merchandising</p>
 
-					<ul class="side-nav">
-						<li class="side-nav-item">
-							<a
-								class="side-nav-link {{ request()->routeIs('merchandising.floor-plan', 'merchandising.floor-plans.*') ? 'active' : '' }}"
-								href="{{ route('merchandising.floor-plan') }}"
-							>
-								<i data-lucide="layout-template"></i>
-								<span>Floor Plan</span>
-							</a>
-						</li>
+                    <ul class="side-nav">
+                        <li class="side-nav-item">
+                            <a
+                                class="side-nav-link {{ request()->routeIs('merchandising.floor-plan', 'merchandising.floor-plans.*') ? 'active' : '' }}"
+                                href="{{ route('merchandising.floor-plan') }}"
+                            >
+                                <i data-lucide="layout-template"></i>
+                                <span>Floor Plan</span>
+                            </a>
+                        </li>
 
-						@if ($canManageTenant)
-							<li class="side-nav-item">
-								<a
-									class="side-nav-link {{ request()->routeIs('merchandising.fixture-types.*') ? 'active' : '' }}"
-									href="{{ route('merchandising.fixture-types.index') }}"
-								>
-									<i data-lucide="blocks"></i>
-									<span>Elementos</span>
-								</a>
-							</li>
-						@endif
-					</ul>
+                        @if ($canManageTenant)
+                            <li class="side-nav-item">
+                                <a
+                                    class="side-nav-link {{ request()->routeIs('merchandising.fixture-types.*') ? 'active' : '' }}"
+                                    href="{{ route('merchandising.fixture-types.index') }}"
+                                >
+                                    <i data-lucide="blocks"></i>
+                                    <span>Elementos</span>
+                                </a>
+                            </li>
+                        @endif
+                    </ul>
                     @endif
                 </div>
             </aside>

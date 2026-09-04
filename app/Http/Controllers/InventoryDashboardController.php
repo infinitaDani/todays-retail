@@ -24,6 +24,7 @@ class InventoryDashboardController extends Controller
             'contificoSettings' => ContificoSetting::current(),
             'canImportStock' => $access->canImportStock($scope),
             'canConfigure' => $access->isAccountAdministrator($scope),
+            'canSynchronize' => $access->canSynchronize($scope),
         ]);
     }
 }

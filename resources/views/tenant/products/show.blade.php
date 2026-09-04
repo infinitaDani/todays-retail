@@ -46,6 +46,48 @@
         </dl>
     </div>
 
+    @if ($canSynchronizeStock)
+        <div class="tr-card mb-3">
+            <h5 class="mb-1">Actualizar stock desde Contífico</h5>
+            <p class="text-muted mb-3">
+                Sincroniza todas las variantes de este producto usando su SKU exacto.
+            </p>
+
+            <form
+                class="row g-3 align-items-end"
+                method="POST"
+                action="{{ route('inventory.sync.product', $product) }}"
+            >
+                @csrf
+
+                <div class="col-lg-8">
+                    <label class="form-label" for="product-sync-warehouse">
+                        Bodega
+                    </label>
+                    <select
+                        class="form-select"
+                        id="product-sync-warehouse"
+                        name="warehouse_id"
+                    >
+                        <option value="">Todas las bodegas autorizadas</option>
+                        @foreach ($syncWarehouses as $warehouse)
+                            <option value="{{ $warehouse->id }}">
+                                {{ $warehouse->branch?->name }} — {{ $warehouse->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="col-lg-4">
+                    <button class="btn btn-outline-primary w-100" type="submit">
+                        <i data-lucide="refresh-cw" class="me-1"></i>
+                        Actualizar stock
+                    </button>
+                </div>
+            </form>
+        </div>
+    @endif
+
     <div class="tr-card mb-3">
         <h5>Imágenes del producto</h5>
 
@@ -121,6 +163,9 @@
                         <th>Compra</th>
                         <th>Inventariable</th>
                         <th>Estado</th>
+                        @if ($canSynchronizeStock)
+                            <th class="text-end">Stock Contífico</th>
+                        @endif
                     </tr>
                 </thead>
 
@@ -134,11 +179,28 @@
                             <td>{{ $variant->is_for_purchase ? 'Sí' : 'No' }}</td>
                             <td>{{ $variant->is_inventory_item ? 'Sí' : 'No' }}</td>
                             <td>{{ $variant->is_active ? 'Activa' : 'Inactiva' }}</td>
+                            @if ($canSynchronizeStock)
+                                <td class="text-end">
+                                    <form
+                                        method="POST"
+                                        action="{{ route('inventory.sync.variant', $variant) }}"
+                                    >
+                                        @csrf
+
+                                        <button class="btn btn-sm btn-light" type="submit">
+                                            Actualizar SKU
+                                        </button>
+                                    </form>
+                                </td>
+                            @endif
                         </tr>
 
                         @if ($variant->inventoryStocks->isNotEmpty())
                             <tr>
-                                <td colspan="7" class="small text-muted">
+                                <td
+                                    colspan="{{ $canSynchronizeStock ? 8 : 7 }}"
+                                    class="small text-muted"
+                                >
                                     <strong>Desglose:</strong>
                                     <ul class="mb-0 mt-1">
                                         @foreach ($variant->inventoryStocks as $stock)
@@ -154,7 +216,10 @@
                         @endif
                     @empty
                         <tr>
-                            <td colspan="7" class="text-muted">
+                            <td
+                                colspan="{{ $canSynchronizeStock ? 8 : 7 }}"
+                                class="text-muted"
+                            >
                                 Producto sin variantes configurables.
                             </td>
                         </tr>

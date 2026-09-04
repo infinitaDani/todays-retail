@@ -76,10 +76,34 @@
                         <div class="col-md-6">
                             <a
                                 class="btn btn-outline-primary w-100 text-start p-3"
-                                href="{{ route('inventory.settings.edit') }}"
+                                href="{{ route('inventory.contifico') }}"
                             >
                                 <i data-lucide="plug-zap" class="me-2"></i>
                                 Contífico y configuración
+                            </a>
+                        </div>
+                    @endif
+
+                    @if ($canSynchronize && ! $canConfigure)
+                        <div class="col-md-6">
+                            <a
+                                class="btn btn-outline-primary w-100 text-start p-3"
+                                href="{{ route('inventory.contifico') }}"
+                            >
+                                <i data-lucide="refresh-cw" class="me-2"></i>
+                                Sincronizar con Contífico
+                            </a>
+                        </div>
+                    @endif
+
+                    @if ($canSynchronize && ! $canImportStock)
+                        <div class="col-md-6">
+                            <a
+                                class="btn btn-outline-primary w-100 text-start p-3"
+                                href="{{ route('inventory.history') }}"
+                            >
+                                <i data-lucide="history" class="me-2"></i>
+                                Historial
                             </a>
                         </div>
                     @endif
@@ -108,9 +132,26 @@
                     </dd>
                 </dl>
 
-                <div class="alert alert-info mt-3 mb-0">
-                    En esta fase no se ejecutan sincronizaciones con Contífico.
-                </div>
+                @if ($summary['recent_syncs']->first())
+                    @php($latestSync = $summary['recent_syncs']->first())
+                    <div class="alert alert-light border mt-3 mb-0">
+                        <strong>Última sincronización real</strong>
+                        <div class="small mt-1">
+                            {{ $latestSync->created_at?->format('d/m/Y H:i') }} ·
+                            {{ $latestSync->typeLabel() }} ·
+                            {{ $latestSync->statusLabel() }}
+                        </div>
+                        <div class="small text-muted">
+                            {{ $latestSync->processed_count }} procesados ·
+                            {{ $latestSync->updated_count }} actualizados ·
+                            {{ $latestSync->failed_count }} errores
+                        </div>
+                    </div>
+                @else
+                    <div class="alert alert-info mt-3 mb-0">
+                        Todavía no existen sincronizaciones manuales con Contífico.
+                    </div>
+                @endif
             </div>
         </div>
     </div>

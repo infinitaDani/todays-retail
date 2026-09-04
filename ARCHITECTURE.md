@@ -729,6 +729,21 @@ Commercial entitlements belong to Core because they are part of the Account plan
 Tenant and per-user limits may only reduce the Core plan allowance. They can never
 increase it.
 
-`inventory_sync_executions` is the tenant audit structure reserved for future
-manual, automatic and per-product synchronizations. This phase only supports a
-safe connection test and does not execute or schedule stock synchronization.
+Manual Contífico synchronization uses `ProductVariant.sku` as the exact ERP code
+and `warehouses.contifico_code` as the `pos` query value. The remote
+`cantidad_stock` value authoritatively replaces `inventory_stocks.quantity`; it is
+never treated as an increment or movement.
+
+One user action creates one parent `inventory_sync_executions` record, regardless
+of how many warehouses, batches or SKUs are processed. Per-SKU results belong to
+`inventory_sync_execution_items`, while sanitized technical errors belong to
+`inventory_sync_logs`. Manual bulk actions consume commercial quota once. Manual
+product actions do not consume bulk quota and use their own cooldown.
+
+Account Administrator and Management may synchronize all tenant warehouses.
+Store Admin may synchronize only warehouses belonging to the branch in their
+operational profile. Advisor cannot synchronize or read administrative sync
+history.
+
+Automatic synchronization, invoice polling, schedulers and webhooks remain out of
+scope and are not implemented.

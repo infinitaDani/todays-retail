@@ -4,6 +4,7 @@ namespace App\Modules\Inventory\Services;
 
 use App\Modules\Inventory\Models\InventorySetting;
 use App\Modules\Inventory\Models\InventorySyncExecution;
+use App\Modules\Inventory\Models\InventorySyncExecutionItem;
 use App\Modules\Products\Models\InventoryStockImport;
 use App\Modules\Products\Models\Warehouse;
 use Illuminate\Support\Facades\DB;
@@ -65,6 +66,9 @@ class WarehouseManager
                 ->exists()
             && ! InventorySyncExecution::query()
                 ->where('warehouse_id', $warehouse->id)
+                ->exists()
+            && ! InventorySyncExecutionItem::query()
+                ->where('warehouse_id', $warehouse->id)
                 ->exists();
     }
 
@@ -74,8 +78,8 @@ class WarehouseManager
             'branch_id' => $data['branch_id'],
             'name' => $data['name'],
             'purposes' => ! empty($data['purposes'])
-				? array_values($data['purposes'])
-				: null,
+                ? array_values($data['purposes'])
+                : null,
             'contifico_code' => ($data['contifico_code'] ?? null) ?: null,
             'is_active' => (bool) $data['is_active'],
         ];

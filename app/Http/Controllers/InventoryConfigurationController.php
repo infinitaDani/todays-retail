@@ -4,31 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateInventoryConfigurationRequest;
 use App\Modules\Inventory\Models\ContificoSetting;
-use App\Modules\Inventory\Models\InventorySetting;
-use App\Modules\Inventory\Models\InventoryUserLimit;
 use App\Modules\Inventory\Services\ContificoClient;
 use App\Modules\Inventory\Services\InventoryConfigurationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 use RuntimeException;
 
 class InventoryConfigurationController extends Controller
 {
-    public function edit(Request $request): View
+    public function edit(): RedirectResponse
     {
-        $account = $request->attributes->get('tenantAccount');
-        $users = $account->users()->orderBy('name')->get();
-
-        return view('tenant.inventory.contifico', [
-            'account' => $account,
-            'inventorySettings' => InventorySetting::current(),
-            'contificoSettings' => ContificoSetting::current(),
-            'users' => $users,
-            'userLimits' => InventoryUserLimit::query()
-                ->whereIn('core_user_id', $users->pluck('id'))
-                ->pluck('manual_bulk_syncs_per_day', 'core_user_id'),
-        ]);
+        return redirect()->route('inventory.contifico');
     }
 
     public function update(

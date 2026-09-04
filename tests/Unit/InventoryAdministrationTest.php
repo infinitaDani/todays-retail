@@ -5,6 +5,8 @@ namespace Tests\Unit;
 use App\Modules\Inventory\Models\ContificoSetting;
 use App\Modules\Inventory\Models\InventorySetting;
 use App\Modules\Inventory\Models\InventorySyncExecution;
+use App\Modules\Inventory\Models\InventorySyncExecutionItem;
+use App\Modules\Inventory\Models\InventorySyncLog;
 use App\Modules\Inventory\Models\InventoryUserLimit;
 use App\Modules\Inventory\Services\InventoryAccess;
 use App\Modules\Products\Models\Warehouse;
@@ -20,6 +22,8 @@ class InventoryAdministrationTest extends TestCase
             new ContificoSetting(),
             new InventoryUserLimit(),
             new InventorySyncExecution(),
+            new InventorySyncExecutionItem(),
+            new InventorySyncLog(),
         ];
 
         foreach ($models as $model) {
@@ -31,7 +35,7 @@ class InventoryAdministrationTest extends TestCase
     {
         $warehouse = new Warehouse();
 
-        $this->assertContains('purpose', $warehouse->getFillable());
+        $this->assertContains('purposes', $warehouse->getFillable());
         $this->assertContains('contifico_code', $warehouse->getFillable());
     }
 
@@ -124,7 +128,7 @@ class InventoryAdministrationTest extends TestCase
         }
 
         $this->assertContains(
-            'tenant.management',
+            'tenant.operational',
             $routes->getByName('inventory.history')->gatherMiddleware(),
         );
     }
@@ -175,13 +179,24 @@ class InventoryAdministrationTest extends TestCase
         $this->assertStringNotContainsString('dropIfExists', $tenantMigration);
     }
 
-    public function test_no_real_contifico_sync_is_registered_in_this_phase(): void
+    public function test_real_contifico_sync_routes_are_operationally_protected(): void
     {
-        $routes = collect(app('router')->getRoutes()->getRoutes())
-            ->map(fn ($route): ?string => $route->getName())
-            ->filter();
+        $routes = app('router')->getRoutes();
 
-        $this->assertFalse($routes->contains('inventory.sync.bulk'));
-        $this->assertFalse($routes->contains('inventory.sync.product'));
+        foreach (
+            [
+                'inventory.contifico',
+                'inventory.sync.bulk',
+                'inventory.sync.product',
+                'inventory.sync.variant',
+                'inventory.sync.sku',
+                'inventory.sync-executions.show',
+            ] as $routeName
+        ) {
+            $this->assertContains(
+                'tenant.operational',
+                $routes->getByName($routeName)->gatherMiddleware(),
+            );
+        }
     }
 }

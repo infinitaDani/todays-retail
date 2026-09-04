@@ -23,6 +23,7 @@ use App\Http\Controllers\InventoryStockImportController;
 use App\Http\Controllers\InventoryConfigurationController;
 use App\Http\Controllers\InventoryDashboardController;
 use App\Http\Controllers\InventorySyncHistoryController;
+use App\Http\Controllers\InventorySyncController;
 use App\Http\Controllers\MerchandisingFixtureTypeController;
 use App\Http\Controllers\MerchandisingFloorPlanController;
 use App\Http\Controllers\TenantRequestController;
@@ -83,6 +84,37 @@ Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
         )
             ->whereNumber('warehouse')
             ->name('inventory.warehouses.show');
+        Route::get('inventory/contifico', [InventorySyncController::class, 'index'])
+            ->name('inventory.contifico');
+        Route::post('inventory/contifico/sync', [InventorySyncController::class, 'bulk'])
+            ->middleware('throttle:2,1')
+            ->name('inventory.sync.bulk');
+        Route::post('inventory/contifico/sync-sku', [InventorySyncController::class, 'sku'])
+            ->middleware('throttle:10,1')
+            ->name('inventory.sync.sku');
+        Route::post(
+            'inventory/contifico/products/{product}',
+            [InventorySyncController::class, 'product'],
+        )
+            ->middleware('throttle:10,1')
+            ->name('inventory.sync.product');
+        Route::post(
+            'inventory/contifico/variants/{variant}',
+            [InventorySyncController::class, 'variant'],
+        )
+            ->middleware('throttle:10,1')
+            ->name('inventory.sync.variant');
+        Route::get(
+            'inventory/history',
+            [InventorySyncHistoryController::class, 'index'],
+        )
+            ->name('inventory.history');
+        Route::get(
+            'inventory/history/{execution}',
+            [InventorySyncHistoryController::class, 'show'],
+        )
+            ->whereNumber('execution')
+            ->name('inventory.sync-executions.show');
 
         Route::get('products/categories', [ProductsController::class, 'categories'])
             ->name('products.categories');
@@ -136,7 +168,7 @@ Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
             ->name('inventory.warehouses.destroy');
 
         Route::get(
-            'inventory/contifico',
+            'inventory/contifico/configuration',
             [InventoryConfigurationController::class, 'edit'],
         )
             ->name('inventory.settings.edit');
@@ -154,9 +186,6 @@ Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
     });
 
     Route::middleware('tenant.management')->group(function () {
-        Route::get('inventory/history', InventorySyncHistoryController::class)
-            ->name('inventory.history');
-
         Route::get(
             'visual-merchandising/elements',
             [MerchandisingFixtureTypeController::class, 'index'],
@@ -363,12 +392,12 @@ Route::middleware(['auth', 'active.account', 'tenant'])->group(function () {
         Route::patch('operations/schedule-change-requests/{changeRequest}', [WeeklyPlannerController::class, 'resolveHistoricalChange'])->name('operations.schedule-change-requests.resolve');
         Route::get('operations/schedule/report', [WeeklyPlannerController::class, 'report'])->name('operations.schedule.report');
         Route::get('operations/schedule/settings', [WeeklyPlannerController::class, 'settings'])
-			->middleware('tenant.management')
-			->name('operations.schedule.settings');
+            ->middleware('tenant.management')
+            ->name('operations.schedule.settings');
 
-		Route::put('operations/schedule/settings', [WeeklyPlannerController::class, 'updateSettings'])
-			->middleware('tenant.management')
-			->name('operations.schedule.settings.update');
+        Route::put('operations/schedule/settings', [WeeklyPlannerController::class, 'updateSettings'])
+            ->middleware('tenant.management')
+            ->name('operations.schedule.settings.update');
         Route::get('operations/schedule', [OperationsController::class, 'schedule'])->name('operations.schedule');
         Route::get('operations/schedule/events', [OperationsController::class, 'scheduleEvents'])->name('operations.schedule.events');
         Route::post('operations/assignments', [OperationsController::class, 'storeAssignment'])->name('operations.assignments.store');

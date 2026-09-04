@@ -7,6 +7,7 @@ use App\Http\Requests\StoreProductCollectionLineRequest;
 use App\Http\Requests\StoreProductCollectionRequest;
 use App\Http\Requests\StoreProductRequest;
 use App\Modules\Operations\Models\Branch;
+use App\Modules\Inventory\Services\InventoryAccess;
 use App\Modules\Products\Models\Product;
 use App\Modules\Products\Models\ProductAttribute;
 use App\Modules\Products\Models\ProductAttributeValue;
@@ -276,8 +277,11 @@ class ProductsController extends Controller
             ->with('success', 'Producto creado.');
     }
 
-    public function show(Product $product): View
-    {
+    public function show(
+        Request $request,
+        Product $product,
+        InventoryAccess $inventoryAccess,
+    ): View {
         $product->load([
             'type',
             'category.parent',
@@ -289,7 +293,22 @@ class ProductsController extends Controller
             'variants.attributeValues.attribute',
         ]);
 
-        return view('tenant.products.show', compact('product'));
+        $inventoryScope = $inventoryAccess->scope($request);
+
+        return view('tenant.products.show', [
+            'product' => $product,
+            'canSynchronizeStock' => $inventoryAccess->canSynchronize(
+                $inventoryScope,
+            ),
+            'syncWarehouses' => $inventoryAccess->visibleWarehouses(
+                $inventoryScope,
+            )
+                ->with('branch:id,name')
+                ->where('is_active', true)
+                ->orderBy('branch_id')
+                ->orderBy('name')
+                ->get(),
+        ]);
     }
 
     public function edit(Product $product): View

@@ -7,6 +7,8 @@ use App\Tenancy\TenantOperationalScope;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 class InventoryAccess
 {
@@ -32,6 +34,60 @@ class InventoryAccess
     public function canImportStock(array $scope): bool
     {
         return $this->canViewAllWarehouses($scope);
+    }
+
+    public function canSynchronize(array $scope): bool
+    {
+        return $this->isAccountAdministrator($scope)
+            || in_array(
+                $scope['role'] ?? null,
+                [
+                    TenantOperationalScope::MANAGEMENT,
+                    TenantOperationalScope::STORE_ADMIN,
+                ],
+                true,
+            );
+    }
+
+    public function authorizeSynchronization(array $scope): void
+    {
+        if (! $this->canSynchronize($scope)) {
+            throw new AuthorizationException(
+                'No tienes permiso para sincronizar inventario.',
+            );
+        }
+    }
+
+    public function synchronizedWarehouses(
+        array $scope,
+        ?int $warehouseId,
+    ): Collection {
+        $this->authorizeSynchronization($scope);
+
+        $warehouses = $this->visibleWarehouses($scope)
+            ->with('branch:id,name')
+            ->where('is_active', true)
+            ->when(
+                $warehouseId !== null,
+                fn (Builder $query): Builder => $query->whereKey($warehouseId),
+            )
+            ->orderBy('branch_id')
+            ->orderBy('name')
+            ->get();
+
+        if ($warehouseId !== null && $warehouses->isEmpty()) {
+            throw new AuthorizationException(
+                'La bodega seleccionada no pertenece a tu alcance autorizado.',
+            );
+        }
+
+        if ($warehouses->isEmpty()) {
+            throw ValidationException::withMessages([
+                'warehouse_id' => 'No existen bodegas activas dentro de tu alcance.',
+            ]);
+        }
+
+        return $warehouses;
     }
 
     public function canViewAllWarehouses(array $scope): bool
