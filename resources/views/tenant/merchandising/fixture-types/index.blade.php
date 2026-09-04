@@ -57,7 +57,7 @@
                                 <form
                                     class="d-inline"
                                     method="POST"
-                                    action="{{ route('merchandising.fixture-types.status', $fixtureType) }}"
+                                    action="{{ route('merchandising.fixture-types.toggle', $fixtureType) }}"
                                 >
                                     @csrf
                                     @method('PATCH')
